@@ -66,7 +66,7 @@ const Messages = () => {
   );
 
   return (
-    <div className="pb-20">
+    <div className="max-w-4xl mx-auto p-4">
       <header className="loop-header">
         <h1 className="loop-title">Messages</h1>
         <Button variant="ghost" size="icon" className="rounded-full">
@@ -74,7 +74,7 @@ const Messages = () => {
         </Button>
       </header>
       
-      <div className="px-6 py-3">
+      <div className="py-3">
         <div className="loop-search">
           <Search className="h-5 w-5 text-muted-foreground" />
           <Input 
@@ -87,7 +87,7 @@ const Messages = () => {
         </div>
       </div>
       
-      <div className="mt-4 px-6">
+      <div className="mt-4">
         {filteredMessages.length === 0 ? (
           <div className="text-center py-12">
             <p className="text-muted-foreground">No messages found</p>
