@@ -4,7 +4,7 @@ import { Home, MessageCircle, User, Store, Plus } from "lucide-react";
 
 const Navigation = () => {
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-card border-t border-border p-2 max-w-md mx-auto">
+    <nav className="fixed bottom-0 left-0 right-0 bg-card border-t border-border p-2 max-w-none mx-auto">
       <div className="flex justify-around items-center">
         <NavLink to="/feed" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
           <Home className="h-6 w-6" />
