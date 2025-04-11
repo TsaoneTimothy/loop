@@ -10,11 +10,11 @@ interface LayoutProps {
 const Layout = ({ onLogout }: LayoutProps) => {
   return (
     <div className="flex min-h-screen bg-background">
-      {/* Sidebar for desktop */}
+      {/* Floating sidebar for desktop */}
       <AppSidebar />
       
-      {/* Main content */}
-      <div className="flex-1 md:ml-[250px]">
+      {/* Main content - no margin on desktop because sidebar is floating */}
+      <div className="flex-1">
         <div className="max-w-none mx-auto">
           <Outlet />
         </div>

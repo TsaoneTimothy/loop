@@ -5,6 +5,7 @@ import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "@/hooks/use-toast";
+import EditProfileDialog from "@/components/EditProfileDialog";
 
 interface ProfileProps {
   onLogout: () => void;
@@ -70,7 +71,7 @@ const Profile = ({ onLogout }: ProfileProps) => {
           <p className="text-muted-foreground mb-3">{user.email}</p>
           
           {user.verifiedSeller && (
-            <Badge className="bg-green-600 hover:bg-green-700 px-3 py-1 flex items-center gap-1">
+            <Badge className="bg-green-600 hover:bg-green-700 px-3 py-1 flex items-center gap-1 mb-3">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
                 <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
                 <polyline points="22 4 12 14.01 9 11.01"></polyline>
@@ -79,7 +80,13 @@ const Profile = ({ onLogout }: ProfileProps) => {
             </Badge>
           )}
           
-          <div className="flex justify-around w-full mt-8">
+          <EditProfileDialog user={user} trigger={
+            <Button variant="outline" className="mb-4">
+              Edit Profile
+            </Button>
+          } />
+          
+          <div className="flex justify-around w-full mt-4">
             <Button variant="ghost" size="icon" className="flex flex-col items-center">
               <Settings className="h-6 w-6 text-primary" />
               <span className="text-xs mt-1">Settings</span>
