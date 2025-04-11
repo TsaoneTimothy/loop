@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Mail, Lock, Eye, EyeOff, Settings, Code } from "lucide-react";
+import { Mail, Lock, Eye, EyeOff, Settings, Code, Key } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface LoginProps {
@@ -37,6 +37,16 @@ const Login = ({ onLogin }: LoginProps) => {
         variant: "destructive",
       });
     }
+  };
+
+  const handleDevLogin = () => {
+    // Use dummy credentials for quick developer access
+    onLogin("dev@example.com", "password123");
+    toast({
+      title: "Developer Mode",
+      description: "Logged in as developer",
+      variant: "default",
+    });
   };
 
   return (
@@ -115,6 +125,16 @@ const Login = ({ onLogin }: LoginProps) => {
             </div>
           </TabsContent>
         </Tabs>
+
+        {/* Developer Backdoor Button */}
+        <Button 
+          variant="outline" 
+          className="w-full mb-4 py-6"
+          onClick={handleDevLogin}
+        >
+          <Key className="mr-2 h-5 w-5 text-yellow-500" />
+          Developer Access
+        </Button>
         
         <div className="relative my-6">
           <div className="absolute inset-0 flex items-center">
