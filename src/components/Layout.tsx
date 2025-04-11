@@ -1,6 +1,6 @@
 
 import { Outlet } from "react-router-dom";
-import AppSidebar from "./AppSidebar";
+import Navigation from "./Navigation";
 
 interface LayoutProps {
   onLogout: () => void;
@@ -8,11 +8,9 @@ interface LayoutProps {
 
 const Layout = ({ onLogout }: LayoutProps) => {
   return (
-    <div className="flex min-h-screen">
-      <AppSidebar />
-      <main className="flex-1 ml-0 md:ml-[calc(var(--sidebar-width-icon)+8px)] transition-all duration-200 ease-in-out overflow-auto">
-        <Outlet />
-      </main>
+    <div className="loop-container">
+      <Outlet />
+      <Navigation />
     </div>
   );
 };
