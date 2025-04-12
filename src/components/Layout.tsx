@@ -13,8 +13,8 @@ const Layout = ({ onLogout }: LayoutProps) => {
       {/* Floating sidebar for desktop */}
       <AppSidebar />
       
-      {/* Main content - no margin on desktop because sidebar is floating */}
-      <div className="flex-1">
+      {/* Main content - adding padding to prevent overlap with sidebar */}
+      <div className="flex-1 md:pl-20">
         <div className="max-w-none mx-auto">
           <Outlet />
         </div>

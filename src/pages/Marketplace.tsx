@@ -1,11 +1,50 @@
-
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, ShoppingBag, Filter } from "lucide-react";
+import { Search, ShoppingBag, Filter, ArrowRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { ScrollArea } from "@/components/ui/scroll-area";
+
+// Mock data for discounts
+const discounts = [
+  {
+    id: 1,
+    title: "50% Off MacBooks",
+    store: "Tech Hub",
+    expiresIn: "2 days",
+    image: "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1026&q=80"
+  },
+  {
+    id: 2,
+    title: "Buy 1 Get 1 Free",
+    store: "Book Corner",
+    expiresIn: "5 days",
+    image: "https://images.unsplash.com/photo-1550399105-c4db5fb85c18?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1171&q=80"
+  },
+  {
+    id: 3,
+    title: "25% Off All Furniture",
+    store: "Campus Living",
+    expiresIn: "1 week",
+    image: "https://images.unsplash.com/photo-1534281670102-157697563ac1?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1074&q=80"
+  },
+  {
+    id: 4,
+    title: "Summer Sale 30% Off",
+    store: "Campus Clothing",
+    expiresIn: "3 days",
+    image: "https://images.unsplash.com/photo-1605773527852-c546a8584ea3?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1074&q=80"
+  },
+  {
+    id: 5,
+    title: "Free Shipping Weekend",
+    store: "Dorm Essentials",
+    expiresIn: "4 days",
+    image: "https://images.unsplash.com/photo-1505843490701-5be5d0b9af9f?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1074&q=80"
+  }
+];
 
 // Mock data for marketplace items
 const featuredItems = [
@@ -152,7 +191,7 @@ const Marketplace = () => {
       </header>
       
       <section className="px-6 md:px-8 overflow-x-auto py-4 border-b border-border">
-        <div className="flex gap-2 pb-2">
+        <div className="flex gap-2 pb-2 justify-center">
           {categories.map((category) => (
             <Button
               key={category}
@@ -166,8 +205,41 @@ const Marketplace = () => {
         </div>
       </section>
       
+      <section className="mt-4 px-6 md:px-8">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-xl font-semibold">Hot Deals</h2>
+          <Button variant="ghost" size="sm" className="text-primary flex items-center gap-1">
+            See all <ArrowRight className="h-4 w-4" />
+          </Button>
+        </div>
+        
+        <ScrollArea className="w-full whitespace-nowrap">
+          <div className="flex space-x-4 pb-4">
+            {discounts.map((discount) => (
+              <Card key={discount.id} className="min-w-[260px] hover:shadow-md transition-shadow">
+                <div className="h-32 relative overflow-hidden rounded-t-lg">
+                  <img 
+                    src={discount.image} 
+                    alt={discount.title} 
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
+                    <h3 className="text-white font-bold text-xl">{discount.title}</h3>
+                  </div>
+                </div>
+                <CardContent className="p-3">
+                  <div className="flex justify-between items-center">
+                    <span className="font-medium">{discount.store}</span>
+                    <Badge variant="outline" className="text-xs">Expires in {discount.expiresIn}</Badge>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </ScrollArea>
+      </section>
+      
       <div className="md:grid md:grid-cols-12 md:gap-6 md:px-8 md:py-6">
-        {/* Main content - Featured items */}
         <div className="md:col-span-8">
           <section className="mt-4 px-6 md:px-0">
             <h2 className="text-2xl font-bold mb-4">Featured Items</h2>
@@ -195,7 +267,6 @@ const Marketplace = () => {
           </section>
         </div>
         
-        {/* Sidebar - Recent listings */}
         <div className="md:col-span-4">
           <section className="mt-6 px-6 md:px-0 md:mt-4">
             <h2 className="text-2xl font-bold mb-4">Recent Listings</h2>
