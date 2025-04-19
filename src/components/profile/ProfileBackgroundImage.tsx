@@ -1,4 +1,5 @@
 
+import { useState } from "react";
 import { ImagePlus, X } from "lucide-react";
 import { useImageUpload } from "@/hooks/use-image-upload";
 

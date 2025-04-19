@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -9,6 +8,8 @@ export interface Profile {
   avatar_url: string | null;
   website: string | null;
   bio: string | null;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export function useProfile(userId?: string) {
