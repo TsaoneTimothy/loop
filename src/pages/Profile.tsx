@@ -1,4 +1,3 @@
-
 import { Settings, Bell, Share2, Map, Bookmark, Heart, Shield, CreditCard, HelpCircle, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar } from "@/components/ui/avatar";
@@ -6,23 +5,47 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "@/hooks/use-toast";
 import EditProfileDialog from "@/components/EditProfileDialog";
+import { useProfile } from "@/hooks/use-profile";
+import { supabase } from "@/integrations/supabase/client";
+import { useEffect, useState } from "react";
 
 interface ProfileProps {
   onLogout: () => void;
 }
 
 const Profile = ({ onLogout }: ProfileProps) => {
-  // Mock user data
-  const user = {
-    name: "Alex Morgan",
-    email: "alex.morgan@university.edu",
-    avatar: "https://images.unsplash.com/photo-1599566150163-29194dcaad36?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=687&q=80",
-    verifiedSeller: true,
-    itemsSold: 23,
-    activeListings: 5,
-    totalEarnings: "₱12,340",
-    notificationCount: 3
-  };
+  const { data: { session } } = await supabase.auth.getSession();
+  const userId = session?.user?.id;
+  const { profile } = useProfile(userId);
+  const [stats, setStats] = useState({
+    itemsSold: 0,
+    activeListings: 0,
+    totalEarnings: "₱0"
+  });
+
+  useEffect(() => {
+    async function fetchStats() {
+      if (!userId) return;
+      
+      const { data: listings } = await supabase
+        .from('listings')
+        .select('*')
+        .eq('user_id', userId);
+
+      if (listings) {
+        const activeListings = listings.length;
+        const totalEarnings = listings.reduce((sum, item) => sum + Number(item.price), 0);
+        
+        setStats({
+          itemsSold: 0, // This would need a 'sold' status in the listings table
+          activeListings,
+          totalEarnings: `₱${totalEarnings.toLocaleString()}`
+        });
+      }
+    }
+
+    fetchStats();
+  }, [userId]);
 
   const menuItems = [
     {
@@ -54,37 +77,33 @@ const Profile = ({ onLogout }: ProfileProps) => {
           </Button>
           <Button variant="ghost" size="icon" className="rounded-full relative">
             <Bell className="h-6 w-6" />
-            {user.notificationCount > 0 && (
+            {/* {user.notificationCount > 0 && (
               <span className="absolute top-0 right-0 h-5 w-5 bg-destructive text-destructive-foreground rounded-full text-xs flex items-center justify-center font-semibold">
                 {user.notificationCount}
               </span>
-            )}
+            )} */}
           </Button>
         </header>
         
         <div className="flex flex-col items-center pt-4 pb-10">
           <Avatar className="h-24 w-24 mb-4">
-            <img src={user.avatar} alt={user.name} />
+            <img src={profile?.avatar_url || "https://images.unsplash.com/photo-1599566150163-29194dcaad36"} alt={profile?.full_name || "Profile"} />
           </Avatar>
           
-          <h1 className="text-2xl font-bold">{user.name}</h1>
-          <p className="text-muted-foreground mb-3">{user.email}</p>
+          <h1 className="text-2xl font-bold">{profile?.full_name || "Loading..."}</h1>
+          <p className="text-muted-foreground mb-3">{session?.user?.email}</p>
           
-          {user.verifiedSeller && (
+          {profile?.website && (
             <Badge className="bg-green-600 hover:bg-green-700 px-3 py-1 flex items-center gap-1 mb-3">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
                 <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
                 <polyline points="22 4 12 14.01 9 11.01"></polyline>
               </svg>
-              Verified Seller
+              {profile.website}
             </Badge>
           )}
           
-          <EditProfileDialog user={user} trigger={
-            <Button variant="outline" className="mb-4">
-              Edit Profile
-            </Button>
-          } />
+          <EditProfileDialog />
           
           <div className="flex justify-around w-full mt-4">
             <Button variant="ghost" size="icon" className="flex flex-col items-center">
@@ -94,11 +113,11 @@ const Profile = ({ onLogout }: ProfileProps) => {
             
             <Button variant="ghost" size="icon" className="flex flex-col items-center relative">
               <Bell className="h-6 w-6 text-primary" />
-              {user.notificationCount > 0 && (
+              {/* {user.notificationCount > 0 && (
                 <span className="absolute top-0 right-0 h-5 w-5 bg-destructive text-destructive-foreground rounded-full text-xs flex items-center justify-center font-semibold">
                   {user.notificationCount}
                 </span>
-              )}
+              )} */}
               <span className="text-xs mt-1">Notifications</span>
             </Button>
             
@@ -128,21 +147,21 @@ const Profile = ({ onLogout }: ProfileProps) => {
       <div className="px-6 py-6">
         <div className="flex justify-between mb-6">
           <div className="text-center">
-            <p className="text-2xl font-bold">{user.itemsSold}</p>
+            <p className="text-2xl font-bold">{stats.itemsSold}</p>
             <p className="text-sm text-muted-foreground">Items Sold</p>
           </div>
           
           <Separator orientation="vertical" />
           
           <div className="text-center">
-            <p className="text-2xl font-bold">{user.activeListings}</p>
+            <p className="text-2xl font-bold">{stats.activeListings}</p>
             <p className="text-sm text-muted-foreground">Active Listings</p>
           </div>
           
           <Separator orientation="vertical" />
           
           <div className="text-center">
-            <p className="text-2xl font-bold">{user.totalEarnings}</p>
+            <p className="text-2xl font-bold">{stats.totalEarnings}</p>
             <p className="text-sm text-muted-foreground">Total Earnings</p>
           </div>
         </div>

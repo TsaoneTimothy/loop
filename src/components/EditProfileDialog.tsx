@@ -1,5 +1,4 @@
-
-import { useId, useState } from "react";
+import { useId, useState, useEffect } from "react";
 import { Check, ImagePlus, X } from "lucide-react";
 import { useCharacterLimit } from "@/hooks/use-character-limit";
 import { useImageUpload } from "@/hooks/use-image-upload";
@@ -17,38 +16,49 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { toast } from "@/hooks/use-toast";
+import { useProfile } from "@/hooks/use-profile";
+import { supabase } from "@/integrations/supabase/client";
 
 interface EditProfileDialogProps {
-  user: {
-    name: string;
-    email: string;
-    avatar: string;
-  };
   trigger?: React.ReactNode;
 }
 
-const EditProfileDialog = ({ user, trigger }: EditProfileDialogProps) => {
+const EditProfileDialog = ({ trigger }: EditProfileDialogProps) => {
   const id = useId();
-  const nameParts = user.name.split(" ");
-  const firstName = nameParts[0];
-  const lastName = nameParts.slice(1).join(" ");
+  const { data: { session } } = await supabase.auth.getSession();
+  const userId = session?.user?.id;
+  const { profile, updateProfile } = useProfile(userId);
+  
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [website, setWebsite] = useState("");
+
+  useEffect(() => {
+    if (profile?.full_name) {
+      const [first, ...rest] = profile.full_name.split(" ");
+      setFirstName(first || "");
+      setLastName(rest.join(" ") || "");
+    }
+    setWebsite(profile?.website || "");
+  }, [profile]);
 
   const maxLength = 180;
   const {
-    value,
+    value: bio,
     characterCount,
-    handleChange,
+    handleChange: handleBioChange,
     maxLength: limit,
   } = useCharacterLimit({
     maxLength,
-    initialValue: "Hey, I am a university student who loves to buy and sell items on Campus Loop!",
+    initialValue: profile?.bio || "",
   });
 
-  const handleSaveChanges = () => {
-    toast({ 
-      title: "Profile updated", 
-      description: "Your profile has been updated successfully" 
+  const handleSaveChanges = async () => {
+    const fullName = `${firstName} ${lastName}`.trim();
+    await updateProfile({
+      full_name: fullName,
+      bio,
+      website: website || null,
     });
   };
 
@@ -67,8 +77,8 @@ const EditProfileDialog = ({ user, trigger }: EditProfileDialogProps) => {
           Make changes to your profile here. You can change your photo and set a username.
         </DialogDescription>
         <div className="overflow-y-auto">
-          <ProfileBg defaultImage="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1471&q=80" />
-          <Avatar defaultImage={user.avatar} />
+          <ProfileBg defaultImage={profile?.avatar_url || undefined} />
+          <Avatar defaultImage={profile?.avatar_url || undefined} />
           <div className="px-6 pb-6 pt-4">
             <form className="space-y-4">
               <div className="flex flex-col gap-4 sm:flex-row">
@@ -77,7 +87,8 @@ const EditProfileDialog = ({ user, trigger }: EditProfileDialogProps) => {
                   <Input
                     id={`${id}-first-name`}
                     placeholder="First name"
-                    defaultValue={firstName}
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
                     type="text"
                     required
                   />
@@ -87,31 +98,11 @@ const EditProfileDialog = ({ user, trigger }: EditProfileDialogProps) => {
                   <Input
                     id={`${id}-last-name`}
                     placeholder="Last name"
-                    defaultValue={lastName}
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value)}
                     type="text"
                     required
                   />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor={`${id}-username`}>Username</Label>
-                <div className="relative">
-                  <Input
-                    id={`${id}-username`}
-                    className="peer pe-9"
-                    placeholder="Username"
-                    defaultValue={user.email.split('@')[0]}
-                    type="text"
-                    required
-                  />
-                  <div className="pointer-events-none absolute inset-y-0 end-0 flex items-center justify-center pe-3 text-muted-foreground/80 peer-disabled:opacity-50">
-                    <Check
-                      size={16}
-                      strokeWidth={2}
-                      className="text-emerald-500"
-                      aria-hidden="true"
-                    />
-                  </div>
                 </div>
               </div>
               <div className="space-y-2">
@@ -124,7 +115,8 @@ const EditProfileDialog = ({ user, trigger }: EditProfileDialogProps) => {
                     id={`${id}-website`}
                     className="-ms-px rounded-s-none shadow-none"
                     placeholder="yourwebsite.com"
-                    defaultValue=""
+                    value={website}
+                    onChange={(e) => setWebsite(e.target.value)}
                     type="text"
                   />
                 </div>
@@ -134,9 +126,9 @@ const EditProfileDialog = ({ user, trigger }: EditProfileDialogProps) => {
                 <Textarea
                   id={`${id}-bio`}
                   placeholder="Write a few sentences about yourself"
-                  defaultValue={value}
+                  value={bio}
                   maxLength={maxLength}
-                  onChange={handleChange}
+                  onChange={handleBioChange}
                   aria-describedby={`${id}-description`}
                 />
                 <p
