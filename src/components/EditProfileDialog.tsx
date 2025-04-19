@@ -25,13 +25,21 @@ interface EditProfileDialogProps {
 
 const EditProfileDialog = ({ trigger }: EditProfileDialogProps) => {
   const id = useId();
-  const { data: { session } } = await supabase.auth.getSession();
-  const userId = session?.user?.id;
+  const [userId, setUserId] = useState<string | undefined>(undefined);
   const { profile, updateProfile } = useProfile(userId);
   
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [website, setWebsite] = useState("");
+
+  useEffect(() => {
+    async function getCurrentUser() {
+      const { data } = await supabase.auth.getSession();
+      setUserId(data.session?.user?.id);
+    }
+    
+    getCurrentUser();
+  }, []);
 
   useEffect(() => {
     if (profile?.full_name) {

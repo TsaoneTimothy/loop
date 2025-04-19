@@ -1,3 +1,4 @@
+
 import { Settings, Bell, Share2, Map, Bookmark, Heart, Shield, CreditCard, HelpCircle, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar } from "@/components/ui/avatar";
@@ -14,14 +15,25 @@ interface ProfileProps {
 }
 
 const Profile = ({ onLogout }: ProfileProps) => {
-  const { data: { session } } = await supabase.auth.getSession();
-  const userId = session?.user?.id;
+  const [session, setSession] = useState<any>(null);
+  const [userId, setUserId] = useState<string | undefined>(undefined);
   const { profile } = useProfile(userId);
   const [stats, setStats] = useState({
     itemsSold: 0,
     activeListings: 0,
     totalEarnings: "₱0"
   });
+
+  // Get session and user ID on component mount
+  useEffect(() => {
+    async function getSession() {
+      const { data } = await supabase.auth.getSession();
+      setSession(data.session);
+      setUserId(data.session?.user?.id);
+    }
+    
+    getSession();
+  }, []);
 
   useEffect(() => {
     async function fetchStats() {

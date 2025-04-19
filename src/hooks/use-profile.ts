@@ -27,7 +27,9 @@ export function useProfile(userId?: string) {
           .single();
 
         if (error) throw error;
-        setProfile(data);
+        
+        // Ensure we're setting a Profile type with all required properties
+        setProfile(data as Profile);
       } catch (error) {
         toast({
           title: "Error fetching profile",
