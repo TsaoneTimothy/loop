@@ -38,7 +38,10 @@ const Marketplace = () => {
       
       <div className="md:grid md:grid-cols-12 md:gap-6 md:px-8 md:py-6">
         <div className="md:col-span-8">
-          <FeaturedItems items={featuredItems} />
+          <FeaturedItems 
+            items={featuredItems} 
+            selectedCategory={selectedCategory}
+          />
         </div>
         
         <div className="md:col-span-4">
