@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -19,7 +20,10 @@ export function useProfile(userId?: string) {
   useEffect(() => {
     async function fetchProfile() {
       try {
-        if (!userId) return;
+        if (!userId) {
+          setLoading(false);
+          return;
+        }
         
         const { data, error } = await supabase
           .from('profiles')
@@ -27,11 +31,15 @@ export function useProfile(userId?: string) {
           .eq('id', userId)
           .single();
 
-        if (error) throw error;
+        if (error) {
+          console.error('Error fetching profile:', error);
+          throw error;
+        }
         
         // Ensure we're setting a Profile type with all required properties
         setProfile(data as Profile);
       } catch (error) {
+        console.error('Error in fetchProfile:', error);
         toast({
           title: "Error fetching profile",
           description: "Please try again later",
@@ -47,26 +55,32 @@ export function useProfile(userId?: string) {
 
   const updateProfile = async (updates: Partial<Profile>) => {
     try {
-      if (!profile?.id) return;
+      if (!userId) {
+        console.error('Cannot update profile: No user ID available');
+        return;
+      }
 
+      console.log('Updating profile with:', updates);
       const { error } = await supabase
         .from('profiles')
         .update(updates)
-        .eq('id', profile.id);
+        .eq('id', userId);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error updating profile:', error);
+        throw error;
+      }
 
       setProfile((prev) => prev ? { ...prev, ...updates } : null);
-      toast({
-        title: "Profile updated",
-        description: "Your profile has been updated successfully",
-      });
+      return true;
     } catch (error) {
+      console.error('Error in updateProfile:', error);
       toast({
         title: "Error updating profile",
         description: "Please try again later",
         variant: "destructive",
       });
+      throw error; // Re-throw to allow caller to handle
     }
   };
 

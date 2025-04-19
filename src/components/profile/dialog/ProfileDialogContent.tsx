@@ -8,16 +8,19 @@ import { ProfileDialogHeader } from "./ProfileDialogHeader";
 import { ProfileDialogFooter } from "./ProfileDialogFooter";
 import { useProfile } from "@/hooks/use-profile";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
 
 export function ProfileDialogContent() {
   const [userId, setUserId] = useState<string | undefined>(undefined);
-  const { profile, updateProfile } = useProfile(userId);
+  const { profile, updateProfile, loading } = useProfile(userId);
   
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [website, setWebsite] = useState("");
   const [bio, setBio] = useState("");
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
 
+  // Get current user on component mount
   useEffect(() => {
     async function getCurrentUser() {
       const { data } = await supabase.auth.getSession();
@@ -27,23 +30,56 @@ export function ProfileDialogContent() {
     getCurrentUser();
   }, []);
 
+  // Update local state when profile data loads
   useEffect(() => {
     if (profile?.full_name) {
-      const [first, ...rest] = profile.full_name.split(" ");
-      setFirstName(first || "");
-      setLastName(rest.join(" ") || "");
+      const nameParts = profile.full_name.split(' ');
+      setFirstName(nameParts[0] || "");
+      setLastName(nameParts.slice(1).join(' ') || "");
     }
     setWebsite(profile?.website || "");
     setBio(profile?.bio || "");
+    setAvatarUrl(profile?.avatar_url);
   }, [profile]);
 
   const handleSaveChanges = async () => {
+    if (!profile) {
+      toast({
+        title: "Error",
+        description: "Unable to update profile. Profile not loaded.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Combine first and last name
     const fullName = `${firstName} ${lastName}`.trim();
-    await updateProfile({
-      full_name: fullName,
-      bio,
-      website: website || null,
-    });
+    
+    try {
+      await updateProfile({
+        full_name: fullName,
+        bio,
+        website: website || null,
+        avatar_url: avatarUrl
+      });
+
+      toast({
+        title: "Profile updated",
+        description: "Your profile has been updated successfully",
+      });
+    } catch (error) {
+      console.error("Failed to update profile:", error);
+      toast({
+        title: "Update failed",
+        description: "There was a problem updating your profile",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Handler for avatar updates
+  const handleAvatarUpdate = (url: string | null) => {
+    setAvatarUrl(url);
   };
 
   return (
@@ -54,7 +90,10 @@ export function ProfileDialogContent() {
       </DialogDescription>
       <div className="overflow-y-auto">
         <ProfileBackgroundImage defaultImage={profile?.avatar_url} />
-        <ProfileAvatar defaultImage={profile?.avatar_url} />
+        <ProfileAvatar 
+          defaultImage={profile?.avatar_url} 
+          onImageUpdate={handleAvatarUpdate}
+        />
         <div className="px-6 pb-6 pt-4">
           <ProfileForm
             firstName={firstName}

@@ -1,14 +1,23 @@
 
 import { ImagePlus } from "lucide-react";
 import { useImageUpload } from "@/hooks/use-image-upload";
+import { useEffect } from "react";
 
 interface ProfileAvatarProps {
-  defaultImage?: string;
+  defaultImage?: string | null;
+  onImageUpdate?: (url: string | null) => void;
 }
 
-export function ProfileAvatar({ defaultImage }: ProfileAvatarProps) {
-  const { previewUrl, fileInputRef, handleThumbnailClick, handleFileChange } = useImageUpload();
+export function ProfileAvatar({ defaultImage, onImageUpdate }: ProfileAvatarProps) {
+  const { previewUrl, fileInputRef, handleThumbnailClick, handleFileChange, handleRemove } = useImageUpload();
   const currentImage = previewUrl || defaultImage;
+  
+  // Notify parent component when image changes
+  useEffect(() => {
+    if (onImageUpdate && previewUrl !== undefined) {
+      onImageUpdate(previewUrl);
+    }
+  }, [previewUrl, onImageUpdate]);
 
   return (
     <div className="-mt-10 px-6">
