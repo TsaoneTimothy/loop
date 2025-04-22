@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { Bell, Store, Calendar, Newspaper, Bookmark, Heart, MessageSquare, Share2, User } from "lucide-react";
+import { Bell, Store, Calendar, Newspaper, Bookmark, Heart, MessageSquare, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -127,7 +127,7 @@ const Feed = () => {
     <div className="pb-20 md:px-10 relative">
       {/* Floating Theme Toggle Button */}
       <div className="fixed top-4 right-4 z-50">
-        <div className="bg-card shadow-lg rounded-full p-2">
+        <div className="bg-card shadow-lg rounded-full p-3 border border-border">
           <ThemeToggle />
         </div>
       </div>

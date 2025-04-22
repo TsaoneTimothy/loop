@@ -15,7 +15,7 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
   const [theme, setTheme] = useState<Theme>(() => {
     const savedTheme = localStorage.getItem('theme');
-    return (savedTheme as Theme) || 'dark';
+    return (savedTheme as Theme) || 'light';  // Default to light mode
   });
 
   useEffect(() => {
@@ -57,7 +57,7 @@ export const ThemeToggle = ({ className }: { className?: string }) => {
       {theme === 'dark' ? (
         <Moon className="h-[1.2rem] w-[1.2rem]" />
       ) : (
-        <Sun className="h-[1.2rem] w-[1.2rem]" />
+        <Sun className="h-[1.2rem] w-[1.2rem] text-primary" />
       )}
     </div>
   );
