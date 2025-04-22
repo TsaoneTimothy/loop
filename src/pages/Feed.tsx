@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Link } from "react-router-dom";
+import { ThemeToggle } from "@/context/ThemeContext";
 
 // Enhanced mock data for feed items with additional user information
 const feedItems = [
@@ -123,7 +124,14 @@ const Feed = () => {
     : items;
 
   return (
-    <div className="pb-20 md:px-10">
+    <div className="pb-20 md:px-10 relative">
+      {/* Floating Theme Toggle Button */}
+      <div className="fixed top-4 right-4 z-50">
+        <div className="bg-card shadow-lg rounded-full p-2">
+          <ThemeToggle />
+        </div>
+      </div>
+      
       <header className="loop-header">
         <h1 className="loop-title">Feed</h1>
         <Button variant="ghost" size="icon" className="rounded-full">

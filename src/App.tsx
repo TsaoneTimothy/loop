@@ -5,6 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useState, useEffect } from "react";
+import { ThemeProvider } from "./context/ThemeContext";
 
 // Pages
 import Login from "./pages/Login";
@@ -46,28 +47,30 @@ const App = () => {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            <Route path="/login" element={!isLoggedIn ? <Login onLogin={handleLogin} /> : <Navigate to="/marketplace" />} />
-            <Route path="/signup" element={!isLoggedIn ? <SignUp /> : <Navigate to="/marketplace" />} />
-            
-            {/* Protected routes */}
-            <Route path="/" element={isLoggedIn ? <Layout onLogout={handleLogout} /> : <Navigate to="/login" />}>
-              <Route index element={<Navigate to="/marketplace" replace />} />
-              <Route path="marketplace" element={<Marketplace />} />
-              <Route path="feed" element={<Feed />} />
-              <Route path="messages" element={<Messages />} />
-              <Route path="profile" element={<Profile onLogout={handleLogout} />} />
-              <Route path="create-listing" element={<CreateListing />} />
-            </Route>
-            
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </TooltipProvider>
+      <ThemeProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Routes>
+              <Route path="/login" element={!isLoggedIn ? <Login onLogin={handleLogin} /> : <Navigate to="/marketplace" />} />
+              <Route path="/signup" element={!isLoggedIn ? <SignUp /> : <Navigate to="/marketplace" />} />
+              
+              {/* Protected routes */}
+              <Route path="/" element={isLoggedIn ? <Layout onLogout={handleLogout} /> : <Navigate to="/login" />}>
+                <Route index element={<Navigate to="/marketplace" replace />} />
+                <Route path="marketplace" element={<Marketplace />} />
+                <Route path="feed" element={<Feed />} />
+                <Route path="messages" element={<Messages />} />
+                <Route path="profile" element={<Profile onLogout={handleLogout} />} />
+                <Route path="create-listing" element={<CreateListing />} />
+              </Route>
+              
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </TooltipProvider>
+      </ThemeProvider>
     </QueryClientProvider>
   );
 };
