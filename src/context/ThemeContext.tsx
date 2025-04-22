@@ -50,7 +50,7 @@ export const ThemeToggle = ({ className }: { className?: string }) => {
   return (
     <div className={`flex items-center gap-2 ${className}`}>
       <Switch 
-        checked={theme === 'light'} 
+        checked={theme === 'dark'} 
         onCheckedChange={toggleTheme}
         aria-label="Toggle theme"
       />
