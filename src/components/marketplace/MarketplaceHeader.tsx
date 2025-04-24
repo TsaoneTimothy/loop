@@ -2,6 +2,7 @@
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Search, ShoppingBag, Filter } from "lucide-react";
+import Logo from "@/components/shared/Logo";
 
 interface MarketplaceHeaderProps {
   searchQuery: string;
@@ -11,7 +12,9 @@ interface MarketplaceHeaderProps {
 const MarketplaceHeader = ({ searchQuery, setSearchQuery }: MarketplaceHeaderProps) => {
   return (
     <header className="loop-header md:flex md:justify-between md:items-center md:px-8 md:py-6">
-      <h1 className="loop-title">Marketplace</h1>
+      <div className="hidden md:block">
+        <Logo />
+      </div>
       <div className="flex items-center gap-4">
         <div className="loop-search md:w-[400px]">
           <Search className="h-5 w-5 text-muted-foreground" />
