@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
@@ -7,10 +6,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Camera, Tag, DollarSign, MapPin, FileText } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import Logo from "@/components/shared/Logo";
 
 const categories = [
   "Textbooks",
-  "Electronics",
+  "Electronics", 
   "Furniture",
   "Clothing",
   "Notes",
@@ -27,9 +27,7 @@ const CreateListing = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  // Mock image upload
   const handleImageUpload = () => {
-    // In a real app, this would handle actual file upload
     const mockImageUrl = "https://images.unsplash.com/photo-1591370874773-6702e8f12fd8?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1074&q=80";
     setImages([...images, mockImageUrl]);
     
@@ -51,20 +49,18 @@ const CreateListing = () => {
       return;
     }
     
-    // In a real app, this would send data to the backend
     toast({
       title: "Listing created",
       description: "Your listing has been created successfully.",
     });
     
-    // Navigate back to marketplace
     navigate("/marketplace");
   };
 
   return (
     <div className="pb-20">
-      <header className="loop-header">
-        <h1 className="loop-title">Create Listing</h1>
+      <header className="loop-header flex items-center justify-between">
+        <Logo />
       </header>
       
       <form onSubmit={handleSubmit} className="px-6 py-4 space-y-6">

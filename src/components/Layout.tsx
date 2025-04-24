@@ -18,7 +18,7 @@ const Layout = ({ onLogout }: LayoutProps) => {
       <div className="flex-1 md:pl-20">
         <div className="max-w-none mx-auto">
           <header className="p-4 border-b border-border md:hidden">
-            <Logo />
+            <Logo size="medium" />
           </header>
           <Outlet />
         </div>

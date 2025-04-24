@@ -1,9 +1,9 @@
-
 import { useState } from "react";
 import { Search, ArrowDownUp } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Avatar } from "@/components/ui/avatar";
+import Logo from "@/components/shared/Logo";
 
 // Mock data for messages
 const mockMessages = [
@@ -67,8 +67,8 @@ const Messages = () => {
 
   return (
     <div className="pb-20">
-      <header className="loop-header">
-        <h1 className="loop-title">Messages</h1>
+      <header className="loop-header flex items-center justify-between">
+        <Logo />
         <Button variant="ghost" size="icon" className="rounded-full">
           <ArrowDownUp className="h-6 w-6" />
         </Button>
