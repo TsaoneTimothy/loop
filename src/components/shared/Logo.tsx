@@ -11,10 +11,10 @@ const Logo = ({ className = "", size = "medium" }: LogoProps) => {
   const logoPath = "/lovable-uploads/67b928f8-6458-4066-9d9b-c517b384eb7b.png";
 
   const sizeClasses = {
-    small: "h-8",
-    medium: "h-10",
-    large: "h-12",
-    xl: "h-32"
+    small: "h-40",    // Increased from h-8
+    medium: "h-50",   // Increased from h-10
+    large: "h-60",    // Increased from h-12
+    xl: "h-160"       // Increased from h-32
   };
 
   return (
