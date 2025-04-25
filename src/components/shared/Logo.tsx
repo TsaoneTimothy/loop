@@ -8,13 +8,13 @@ interface LogoProps {
 
 const Logo = ({ className = "", size = "medium" }: LogoProps) => {
   const { theme } = useTheme();
-  const logoPath = "/lovable-uploads/67b928f8-6458-4066-9d9b-c517b384eb7b.png";
+  const logoPath = "/lovable-uploads/1bc2c131-d7fb-478c-b9e8-02dc3089e2aa.png";
 
   const sizeClasses = {
-    small: "h-40",    // Increased from h-8
-    medium: "h-50",   // Increased from h-10
-    large: "h-60",    // Increased from h-12
-    xl: "h-160"       // Increased from h-32
+    small: "h-40",
+    medium: "h-50",
+    large: "h-60",
+    xl: "h-160"
   };
 
   return (
