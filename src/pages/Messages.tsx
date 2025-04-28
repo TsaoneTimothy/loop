@@ -11,94 +11,139 @@ import { useSearchParams } from "react-router-dom";
 const mockMessages = [
   {
     id: 1,
-    name: "Sarah Parker",
-    message: "Is the calculus textbook still available?",
+    sellerId: 1,
+    name: "Keith Mompati",
+    message: "Sure! It's the M2 chip, 16GB RAM, 512GB SSD.",
     time: "2m ago",
-    avatar: "/placeholder.svg",
+    avatar: "https://images.unsplash.com/photo-1599566150163-29194dcaad36",
     online: true,
     unread: 2
   },
   {
     id: 2,
-    name: "Mike Johnson",
-    message: "Thanks for the quick response!",
+    sellerId: 2,
+    name: "Jane Smith",
+    message: "The textbook is in perfect condition!",
     time: "1h ago",
-    avatar: "/placeholder.svg",
+    avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330",
     online: true,
     unread: 0
   },
   {
     id: 3,
-    name: "Emily Chen",
-    message: "Could you hold it until tomorrow?",
+    sellerId: 3,
+    name: "Alex Johnson",
+    message: "Yes, the lamp comes with LED bulbs.",
     time: "3h ago",
-    avatar: "/placeholder.svg",
+    avatar: "https://images.unsplash.com/photo-1633332755192-727a05c4013d",
     online: false,
     unread: 1
-  },
-  {
-    id: 4,
-    name: "Alex Thompson",
-    message: "Perfect! See you at the library",
-    time: "1d ago",
-    avatar: "/placeholder.svg",
-    online: false,
-    unread: 0
-  },
-  {
-    id: 5,
-    name: "Jordan Smith",
-    message: "What's the lowest you can go?",
-    time: "2d ago",
-    avatar: "/placeholder.svg",
-    online: false,
-    unread: 0
   }
 ];
 
-// Mock conversation with Keith
-const keithConversation = [
-  {
-    id: 1,
-    sender: "user",
-    message: "Hi, I'm interested in the MacBook Pro. Is it still available?",
-    time: "2:30 PM"
-  },
-  {
-    id: 2,
-    sender: "seller",
-    message: "Yes, it's still available! It's in great condition, only used for 3 months.",
-    time: "2:32 PM"
-  },
-  {
-    id: 3,
-    sender: "user",
-    message: "Great! Could you tell me more about the specs?",
-    time: "2:33 PM"
-  },
-  {
-    id: 4,
-    sender: "seller",
-    message: "Sure! It's the M2 chip, 16GB RAM, 512GB SSD. Battery cycle count is only 56.",
-    time: "2:35 PM"
-  }
-];
+// Mock conversations for each seller
+const mockConversations: Record<number, Array<{ id: number; sender: "user" | "seller"; message: string; time: string }>> = {
+  1: [
+    {
+      id: 1,
+      sender: "user",
+      message: "Hi, I'm interested in the MacBook Pro. Is it still available?",
+      time: "2:30 PM"
+    },
+    {
+      id: 2,
+      sender: "seller",
+      message: "Yes, it's still available! It's in great condition, only used for 3 months.",
+      time: "2:32 PM"
+    },
+    {
+      id: 3,
+      sender: "user",
+      message: "Great! Could you tell me more about the specs?",
+      time: "2:33 PM"
+    },
+    {
+      id: 4,
+      sender: "seller",
+      message: "Sure! It's the M2 chip, 16GB RAM, 512GB SSD. Battery cycle count is only 56.",
+      time: "2:35 PM"
+    }
+  ],
+  2: [
+    {
+      id: 1,
+      sender: "user",
+      message: "Hello! Is the Calculus textbook still for sale?",
+      time: "1:20 PM"
+    },
+    {
+      id: 2,
+      sender: "seller",
+      message: "Yes, it is! Are you interested in buying it?",
+      time: "1:25 PM"
+    },
+    {
+      id: 3,
+      sender: "user",
+      message: "What's the condition of the book? Any highlights or notes?",
+      time: "1:26 PM"
+    },
+    {
+      id: 4,
+      sender: "seller",
+      message: "The textbook is in perfect condition! No highlights or notes.",
+      time: "1:30 PM"
+    }
+  ],
+  3: [
+    {
+      id: 1,
+      sender: "user",
+      message: "Hi! I saw your desk lamp listing. Does it come with bulbs?",
+      time: "11:20 AM"
+    },
+    {
+      id: 2,
+      sender: "seller",
+      message: "Hello! Yes, it comes with LED bulbs included.",
+      time: "11:25 AM"
+    },
+    {
+      id: 3,
+      sender: "user",
+      message: "Great! What's the wattage of the bulbs?",
+      time: "11:26 AM"
+    },
+    {
+      id: 4,
+      sender: "seller",
+      message: "They're 9W LED bulbs, equivalent to about 60W traditional bulbs.",
+      time: "11:30 AM"
+    }
+  ]
+};
 
 const Messages = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [messages, setMessages] = useState(mockMessages);
   const [searchParams] = useSearchParams();
-  const [selectedSeller, setSelectedSeller] = useState<string | null>(null);
+  const [selectedSeller, setSelectedSeller] = useState<{id: number; name: string; avatar: string} | null>(null);
   const [newMessage, setNewMessage] = useState("");
   
   useEffect(() => {
-    const seller = searchParams.get("seller");
-    if (seller === "1") { // Keith's ID
-      setSelectedSeller("Keith Mompati");
+    const sellerId = searchParams.get("seller");
+    if (sellerId) {
+      const seller = mockMessages.find(m => m.sellerId === Number(sellerId));
+      if (seller) {
+        setSelectedSeller({
+          id: seller.sellerId,
+          name: seller.name,
+          avatar: seller.avatar
+        });
+      }
     }
   }, [searchParams]);
 
-  // Filter messages based on search query
   const filteredMessages = messages.filter(
     (message) =>
       message.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -108,24 +153,25 @@ const Messages = () => {
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newMessage.trim()) return;
-    
     setNewMessage("");
   };
 
   if (selectedSeller) {
+    const conversation = mockConversations[selectedSeller.id] || [];
+    
     return (
       <div className="pb-20 flex flex-col h-screen">
         <header className="loop-header flex items-center justify-between p-4 border-b">
           <div className="flex items-center gap-3">
             <Avatar className="h-10 w-10">
-              <img src="https://images.unsplash.com/photo-1599566150163-29194dcaad36" alt={selectedSeller} />
+              <img src={selectedSeller.avatar} alt={selectedSeller.name} />
             </Avatar>
-            <h2 className="font-semibold">{selectedSeller}</h2>
+            <h2 className="font-semibold">{selectedSeller.name}</h2>
           </div>
         </header>
 
         <div className="flex-1 overflow-auto p-4 space-y-4">
-          {keithConversation.map((msg) => (
+          {conversation.map((msg) => (
             <div
               key={msg.id}
               className={`flex ${msg.sender === "user" ? "justify-end" : "justify-start"}`}
