@@ -49,7 +49,7 @@ export const featuredItems = [
     image: "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1026&q=80",
     seller: {
       id: 1,
-      name: "John Doe",
+      name: "Keith Mompati",
       avatar: "https://images.unsplash.com/photo-1599566150163-29194dcaad36"
     }
   },
@@ -106,7 +106,7 @@ export const featuredItems = [
     seller: {
       id: 5,
       name: "David Kim",
-      avatar: "https://images.unsplash.com/photo-1500648767791-00d56c3f6956"
+      avatar: "https://images.unsplash.com/photo-1500648767791-0a1dd8a72fbc"
     }
   },
   {
@@ -120,7 +120,7 @@ export const featuredItems = [
     seller: {
       id: 6,
       name: "Amy Chen",
-      avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd8a72fbc"
+      avatar: "https://images.unsplash.com/photo-1507003211169-00d56c3f6956"
     }
   },
   {

@@ -1,9 +1,11 @@
-import { useState } from "react";
-import { Search, ArrowDownUp } from "lucide-react";
+
+import { useState, useEffect } from "react";
+import { Search, ArrowDownUp, Send } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Avatar } from "@/components/ui/avatar";
 import Logo from "@/components/shared/Logo";
+import { useSearchParams } from "react-router-dom";
 
 // Mock data for messages
 const mockMessages = [
@@ -54,9 +56,47 @@ const mockMessages = [
   }
 ];
 
+// Mock conversation with Keith
+const keithConversation = [
+  {
+    id: 1,
+    sender: "user",
+    message: "Hi, I'm interested in the MacBook Pro. Is it still available?",
+    time: "2:30 PM"
+  },
+  {
+    id: 2,
+    sender: "seller",
+    message: "Yes, it's still available! It's in great condition, only used for 3 months.",
+    time: "2:32 PM"
+  },
+  {
+    id: 3,
+    sender: "user",
+    message: "Great! Could you tell me more about the specs?",
+    time: "2:33 PM"
+  },
+  {
+    id: 4,
+    sender: "seller",
+    message: "Sure! It's the M2 chip, 16GB RAM, 512GB SSD. Battery cycle count is only 56.",
+    time: "2:35 PM"
+  }
+];
+
 const Messages = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [messages, setMessages] = useState(mockMessages);
+  const [searchParams] = useSearchParams();
+  const [selectedSeller, setSelectedSeller] = useState<string | null>(null);
+  const [newMessage, setNewMessage] = useState("");
+  
+  useEffect(() => {
+    const seller = searchParams.get("seller");
+    if (seller === "1") { // Keith's ID
+      setSelectedSeller("Keith Mompati");
+    }
+  }, [searchParams]);
 
   // Filter messages based on search query
   const filteredMessages = messages.filter(
@@ -64,6 +104,63 @@ const Messages = () => {
       message.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       message.message.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const handleSendMessage = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newMessage.trim()) return;
+    
+    setNewMessage("");
+  };
+
+  if (selectedSeller) {
+    return (
+      <div className="pb-20 flex flex-col h-screen">
+        <header className="loop-header flex items-center justify-between p-4 border-b">
+          <div className="flex items-center gap-3">
+            <Avatar className="h-10 w-10">
+              <img src="https://images.unsplash.com/photo-1599566150163-29194dcaad36" alt={selectedSeller} />
+            </Avatar>
+            <h2 className="font-semibold">{selectedSeller}</h2>
+          </div>
+        </header>
+
+        <div className="flex-1 overflow-auto p-4 space-y-4">
+          {keithConversation.map((msg) => (
+            <div
+              key={msg.id}
+              className={`flex ${msg.sender === "user" ? "justify-end" : "justify-start"}`}
+            >
+              <div
+                className={`max-w-[80%] rounded-lg p-3 ${
+                  msg.sender === "user"
+                    ? "bg-primary text-primary-foreground ml-12"
+                    : "bg-muted mr-12"
+                }`}
+              >
+                <p>{msg.message}</p>
+                <span className="text-xs opacity-70 mt-1 block">{msg.time}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <form 
+          onSubmit={handleSendMessage}
+          className="border-t p-4 flex gap-2"
+        >
+          <Input
+            placeholder="Type a message..."
+            value={newMessage}
+            onChange={(e) => setNewMessage(e.target.value)}
+            className="flex-1"
+          />
+          <Button type="submit" size="icon">
+            <Send className="h-4 w-4" />
+          </Button>
+        </form>
+      </div>
+    );
+  }
 
   return (
     <div className="pb-20">
