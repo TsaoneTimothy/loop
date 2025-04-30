@@ -8,7 +8,11 @@ interface LogoProps {
 
 const Logo = ({ className = "", size = "medium" }: LogoProps) => {
   const { theme } = useTheme();
-  const logoPath = "/lovable-uploads/1bc2c131-d7fb-478c-b9e8-02dc3089e2aa.png";
+  const lightLogoPath = "/lovable-uploads/1bc2c131-d7fb-478c-b9e8-02dc3089e2aa.png";
+  const darkLogoPath = "/lovable-uploads/431c40eb-e63a-412f-a672-95693e15def7.png";
+  
+  // Use different logo based on theme
+  const logoPath = theme === 'dark' ? darkLogoPath : lightLogoPath;
 
   const sizeClasses = {
     small: "h-40",
@@ -29,4 +33,3 @@ const Logo = ({ className = "", size = "medium" }: LogoProps) => {
 };
 
 export default Logo;
-
