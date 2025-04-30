@@ -1,11 +1,10 @@
-
 import React from "react";
 import { Store, Calendar, Newspaper, Tag, Tags } from "lucide-react";
 
 // Categories for the feed
 const feedCategories = [
   { id: "store", name: "Campus Store", icon: <Store className="h-6 w-6" /> },
-  { id: "events", name: "Events", icon: <Calendar className="h-6 w-6" /> },
+  { id: "event", name: "Events", icon: <Calendar className="h-6 w-6" /> },
   { id: "news", name: "News", icon: <Newspaper className="h-6 w-6" /> },
   { id: "discount", name: "Discounts", icon: <Tag className="h-6 w-6" /> },
   { id: "coupon", name: "Coupons", icon: <Tags className="h-6 w-6" /> }

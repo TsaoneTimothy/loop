@@ -1,4 +1,3 @@
-
 import { FeedItem } from "@/types/feed";
 
 // Enhanced mock data for feed items with additional user information
@@ -142,6 +141,48 @@ export const feedItems: FeedItem[] = [
       username: "library_services",
       avatar: "https://images.unsplash.com/photo-1589395937772-f67057e233df?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=250&q=80",
       role: "admin",
+      verified: true
+    }
+  },
+  {
+    id: 8,
+    type: "discount",
+    title: "Student Discount: 15% Off Laptops at HiFi Corp",
+    description: "Students can get 15% off on selected laptops and computer accessories at HiFi Corp with valid student ID. Perfect for upgrading your study equipment!",
+    date: "Valid until June 30, 2024",
+    image: "https://images.unsplash.com/photo-1593642702909-dec73df255d7?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1169&q=80",
+    orientation: "landscape",
+    likes: 198,
+    comments: 15,
+    saved: false,
+    link: "https://www.hificorp.co.za/?srsltid=AfmBOoqcFBPuPZHOASPhFe1iaouHy44aCYAzuZFpikiOYXVq3KdVDQzT",
+    user: {
+      id: 5,
+      name: "Student Affairs",
+      username: "student_affairs",
+      avatar: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=250&q=80",
+      role: "admin",
+      verified: true
+    }
+  },
+  {
+    id: 9,
+    type: "discount",
+    title: "Aptec Tech Deals: 20% Student Discount",
+    description: "Visit Aptec in Botswana for exclusive 20% student discounts on smartphones, tablets, and accessories. Show your student ID at checkout!",
+    date: "Ongoing offer",
+    image: "https://images.unsplash.com/photo-1546054454-aa26e2b734c7?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=880&q=80",
+    orientation: "landscape",
+    likes: 145,
+    comments: 8,
+    saved: false,
+    link: "https://www.aptec.co.bw/",
+    user: {
+      id: 3,
+      name: "Campus Store",
+      username: "campus_store",
+      avatar: "https://images.unsplash.com/photo-1560250097-0b93528c311a?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=250&q=80",
+      role: "merchant",
       verified: true
     }
   }
