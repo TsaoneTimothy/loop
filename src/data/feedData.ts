@@ -82,5 +82,65 @@ export const feedItems: FeedItem[] = [
       role: "admin",
       verified: true
     }
+  },
+  {
+    id: 5,
+    type: "discount",
+    title: "Student Discount at TechZone",
+    description: "Show your student ID at TechZone and get 25% off on all electronic accessories. Perfect for upgrading your study setup!",
+    date: "Valid until May 31, 2024",
+    image: "https://images.unsplash.com/photo-1519389950473-47ba0277781c?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80",
+    orientation: "landscape",
+    likes: 412,
+    comments: 37,
+    saved: false,
+    user: {
+      id: 5,
+      name: "Student Affairs",
+      username: "student_affairs",
+      avatar: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=250&q=80",
+      role: "admin",
+      verified: true
+    }
+  },
+  {
+    id: 6,
+    type: "coupon",
+    title: "STUDENT25 - Spotify Premium",
+    description: "Use code STUDENT25 when signing up for Spotify Premium to get 50% off your monthly subscription. Valid with student email verification.",
+    date: "Ongoing offer",
+    image: "https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1074&q=80",
+    orientation: "landscape",
+    likes: 521,
+    comments: 42,
+    saved: false,
+    user: {
+      id: 5,
+      name: "Student Affairs",
+      username: "student_affairs",
+      avatar: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=250&q=80",
+      role: "admin",
+      verified: true
+    }
+  },
+  {
+    id: 7,
+    type: "coupon",
+    title: "CAMPUSBOOKS10 - Amazon",
+    description: "Get 10% off on textbooks on Amazon with code CAMPUSBOOKS10. Perfect for this semester's required readings!",
+    date: "Valid until September 30, 2024",
+    image: "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1074&q=80",
+    orientation: "landscape",
+    likes: 287,
+    comments: 19,
+    saved: true,
+    user: {
+      id: 2,
+      name: "Library Services",
+      username: "library_services",
+      avatar: "https://images.unsplash.com/photo-1589395937772-f67057e233df?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=250&q=80",
+      role: "admin",
+      verified: true
+    }
   }
 ];

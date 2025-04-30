@@ -25,11 +25,7 @@ const Feed = () => {
 
   // Filter items based on selected category
   const filteredItems = selectedCategory
-    ? items.filter((item) => 
-        selectedCategory === "events" 
-          ? item.type === "event" 
-          : item.type === selectedCategory
-      )
+    ? items.filter((item) => item.type === selectedCategory)
     : items;
 
   return (
