@@ -1,6 +1,6 @@
 
 import React from "react";
-import { Bookmark, Heart, MessageSquare, Share2, Calendar, Store, Newspaper } from "lucide-react";
+import { Bookmark, Heart, MessageSquare, Share2, Calendar, Store, Newspaper, Tag, Tags } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -28,6 +28,7 @@ interface PostItemProps {
   saved: boolean;
   user: UserInfo;
   onToggleSaved: (id: number) => void;
+  link?: string;
 }
 
 const PostItem = ({ 
@@ -42,8 +43,25 @@ const PostItem = ({
   comments, 
   saved, 
   user, 
-  onToggleSaved 
+  onToggleSaved,
+  link
 }: PostItemProps) => {
+  const renderTitle = () => {
+    if (link) {
+      return (
+        <a 
+          href={link} 
+          target="_blank" 
+          rel="noopener noreferrer"
+          className="text-xl font-bold mb-2 hover:text-primary transition-colors"
+        >
+          {title} <span className="text-xs">↗</span>
+        </a>
+      );
+    }
+    return <h3 className="text-xl font-bold mb-2">{title}</h3>;
+  };
+  
   return (
     <div className="loop-card overflow-hidden">
       {/* User Profile Header */}
@@ -97,7 +115,11 @@ const PostItem = ({
                 ? "destructive" 
                 : type === "store" 
                   ? "default" 
-                  : "outline"
+                  : type === "discount"
+                    ? "outline"
+                    : type === "coupon"
+                      ? "secondary"
+                      : "outline"
           }
           className="px-3 py-1 capitalize flex items-center gap-1"
         >
@@ -105,15 +127,19 @@ const PostItem = ({
           {type === "announcement" && "Announcement"}
           {type === "store" && <Store className="h-3 w-3" />}
           {type === "news" && <Newspaper className="h-3 w-3" />}
+          {type === "discount" && <Tag className="h-3 w-3" />}
+          {type === "coupon" && <Tags className="h-3 w-3" />}
           {type === "event" && "Event"}
           {type === "store" && "Store"}
           {type === "news" && "News"}
+          {type === "discount" && "Discount"}
+          {type === "coupon" && "Coupon"}
         </Badge>
         <span className="text-muted-foreground text-xs">{date}</span>
       </div>
       
       {/* Post Title */}
-      <h3 className="text-xl font-bold mb-2">{title}</h3>
+      {renderTitle()}
       <p className="text-muted-foreground text-sm mb-4">{description}</p>
       
       {/* Card Image - Responsive based on orientation */}

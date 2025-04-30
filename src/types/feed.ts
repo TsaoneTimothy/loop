@@ -20,6 +20,7 @@ export interface FeedItem {
   comments: number;
   saved: boolean;
   user: UserInfo;
+  link?: string;
 }
 
 export interface FeedCategory {

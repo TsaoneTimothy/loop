@@ -114,6 +114,7 @@ export const feedItems: FeedItem[] = [
     likes: 521,
     comments: 42,
     saved: false,
+    link: "https://www.spotify.com/premium",
     user: {
       id: 5,
       name: "Student Affairs",
@@ -134,6 +135,7 @@ export const feedItems: FeedItem[] = [
     likes: 287,
     comments: 19,
     saved: true,
+    link: "https://www.amazon.com/books",
     user: {
       id: 2,
       name: "Library Services",
