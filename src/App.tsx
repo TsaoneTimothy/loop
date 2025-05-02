@@ -53,12 +53,12 @@ const App = () => {
           <Sonner />
           <BrowserRouter>
             <Routes>
-              <Route path="/login" element={!isLoggedIn ? <Login onLogin={handleLogin} /> : <Navigate to="/marketplace" />} />
-              <Route path="/signup" element={!isLoggedIn ? <SignUp /> : <Navigate to="/marketplace" />} />
+              <Route path="/login" element={!isLoggedIn ? <Login onLogin={handleLogin} /> : <Navigate to="/feed" />} />
+              <Route path="/signup" element={!isLoggedIn ? <SignUp /> : <Navigate to="/feed" />} />
               
               {/* Protected routes */}
               <Route path="/" element={isLoggedIn ? <Layout onLogout={handleLogout} /> : <Navigate to="/login" />}>
-                <Route index element={<Navigate to="/marketplace" replace />} />
+                <Route index element={<Navigate to="/feed" replace />} />
                 <Route path="marketplace" element={<Marketplace />} />
                 <Route path="feed" element={<Feed />} />
                 <Route path="messages" element={<Messages />} />
