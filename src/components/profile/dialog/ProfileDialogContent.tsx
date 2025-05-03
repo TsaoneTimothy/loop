@@ -12,18 +12,20 @@ import { toast } from "@/hooks/use-toast";
 
 export function ProfileDialogContent() {
   const [userId, setUserId] = useState<string | undefined>(undefined);
-  const { profile, updateProfile, loading } = useProfile(userId);
+  const { profile, updateProfile, loading, isAuthenticated } = useProfile(userId);
   
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [bio, setBio] = useState("");
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [saveAttempted, setSaveAttempted] = useState(false);
 
   // Get current user on component mount
   useEffect(() => {
     async function getCurrentUser() {
       const { data } = await supabase.auth.getSession();
+      console.log("Auth session in dialog:", data.session);
       setUserId(data.session?.user?.id);
       setEmail(data.session?.user?.email || "");
     }
@@ -43,6 +45,17 @@ export function ProfileDialogContent() {
   }, [profile]);
 
   const handleSaveChanges = async () => {
+    setSaveAttempted(true);
+    
+    if (!isAuthenticated) {
+      toast({
+        title: "Not authenticated",
+        description: "You must be logged in to update your profile. Please log in and try again.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     if (!userId) {
       toast({
         title: "Error",
@@ -56,10 +69,10 @@ export function ProfileDialogContent() {
     const fullName = `${firstName} ${lastName}`.trim();
     
     try {
-      console.log("Updating profile with:", { fullName, bio, avatarUrl });
+      console.log("Updating profile with:", { fullName, bio, avatarUrl, email });
       const result = await updateProfile({
         id: userId,
-        full_name: fullName,
+        full_name: fullName || "User", // Ensure full_name is not empty
         bio,
         email: email,
         avatar_url: avatarUrl
@@ -92,6 +105,15 @@ export function ProfileDialogContent() {
       <DialogDescription className="sr-only">
         Make changes to your profile here. You can change your photo and set a username.
       </DialogDescription>
+      
+      {saveAttempted && !isAuthenticated && (
+        <div className="px-6 pt-4 pb-0">
+          <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-md mb-4">
+            You're not authenticated. Please log in to update your profile.
+          </div>
+        </div>
+      )}
+      
       <div className="overflow-y-auto">
         <ProfileBackgroundImage defaultImage={profile?.avatar_url} />
         <ProfileAvatar 

@@ -9,6 +9,7 @@ import EditProfileDialog from "@/components/EditProfileDialog";
 import { useProfile } from "@/hooks/use-profile";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useState } from "react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 interface ProfileProps {
   onLogout: () => void;
@@ -17,7 +18,7 @@ interface ProfileProps {
 const Profile = ({ onLogout }: ProfileProps) => {
   const [session, setSession] = useState<any>(null);
   const [userId, setUserId] = useState<string | undefined>(undefined);
-  const { profile } = useProfile(userId);
+  const { profile, isAuthenticated } = useProfile(userId);
   const [stats, setStats] = useState({
     itemsSold: 0,
     activeListings: 0,
@@ -28,6 +29,7 @@ const Profile = ({ onLogout }: ProfileProps) => {
   useEffect(() => {
     async function getSession() {
       const { data } = await supabase.auth.getSession();
+      console.log("Auth session data:", data);
       setSession(data.session);
       setUserId(data.session?.user?.id);
     }
@@ -80,8 +82,55 @@ const Profile = ({ onLogout }: ProfileProps) => {
     }
   ];
 
+  const handleRefreshAuth = async () => {
+    const { data } = await supabase.auth.getSession();
+    setSession(data.session);
+    setUserId(data.session?.user?.id);
+    if (data.session?.user?.id) {
+      toast({ title: "Authentication successful", description: "Your profile has been loaded" });
+    } else {
+      toast({ 
+        title: "Not authenticated", 
+        description: "Please log in to update your profile",
+        variant: "destructive"
+      });
+    }
+  };
+
   return (
     <div className="pb-20">
+      {/* Authentication Status */}
+      <div className="px-6 py-2">
+        {isAuthenticated ? (
+          <Alert className="bg-green-50 border-green-200 mb-2">
+            <AlertTitle className="text-green-800 flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-green-500"></div>
+              Authenticated
+            </AlertTitle>
+            <AlertDescription className="text-green-700">
+              You're logged in as {session?.user?.email}
+            </AlertDescription>
+          </Alert>
+        ) : (
+          <Alert className="bg-red-50 border-red-200 mb-2">
+            <AlertTitle className="text-red-800 flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-red-500"></div>
+              Not Authenticated
+            </AlertTitle>
+            <AlertDescription className="text-red-700">
+              You need to log in to update your profile
+              <Button 
+                variant="link" 
+                className="text-red-700 p-0 h-auto font-semibold ml-2"
+                onClick={handleRefreshAuth}
+              >
+                Refresh Auth
+              </Button>
+            </AlertDescription>
+          </Alert>
+        )}
+      </div>
+
       <div className="bg-secondary">
         <header className="loop-header">
           <Button variant="ghost" size="icon" className="rounded-full">

@@ -16,15 +16,19 @@ export interface Profile {
 export function useProfile(userId?: string) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
 
   useEffect(() => {
     async function fetchProfile() {
       try {
         if (!userId) {
+          console.log("No user ID provided to useProfile");
           setLoading(false);
+          setIsAuthenticated(false);
           return;
         }
         
+        setIsAuthenticated(true);
         console.log("Fetching profile for user ID:", userId);
         const { data, error } = await supabase
           .from('profiles')
@@ -59,15 +63,22 @@ export function useProfile(userId?: string) {
     try {
       if (!userId) {
         console.error('Cannot update profile: No user ID available');
+        toast({
+          title: "Authentication required",
+          description: "You must be logged in to update your profile",
+          variant: "destructive",
+        });
         return null;
       }
 
       console.log('Updating profile with:', updates);
       
-      // Make sure the id field matches the userId
+      // Make sure the full_name field is included and not null
+      // If it's not provided in the updates, use an empty string as fallback
       const updatedProfile = {
         ...updates,
-        id: userId
+        id: userId,
+        full_name: updates.full_name || ''
       };
       
       const { data, error } = await supabase
@@ -100,5 +111,5 @@ export function useProfile(userId?: string) {
     }
   };
 
-  return { profile, loading, updateProfile };
+  return { profile, loading, updateProfile, isAuthenticated };
 }

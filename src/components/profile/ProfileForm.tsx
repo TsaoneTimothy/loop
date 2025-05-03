@@ -70,7 +70,7 @@ export function ProfileForm({
         </div>
       </div>
       <div className="space-y-2">
-        <Label htmlFor={`${id}-email`}>Email</Label>
+        <Label htmlFor={`${id}-email`}>Email/Gmail</Label>
         <div className="flex rounded-lg shadow-sm shadow-black/5">
           <Input
             id={`${id}-email`}
