@@ -2,7 +2,6 @@
 import { Settings, Bell, Share2, Map, Bookmark, Heart, Shield, CreditCard, HelpCircle, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "@/hooks/use-toast";
 import EditProfileDialog from "@/components/EditProfileDialog";
@@ -17,8 +16,7 @@ interface ProfileProps {
 
 const Profile = ({ onLogout }: ProfileProps) => {
   const [session, setSession] = useState<any>(null);
-  const [userId, setUserId] = useState<string | undefined>(undefined);
-  const { profile, isAuthenticated } = useProfile(userId);
+  const { profile, isAuthenticated, userId } = useProfile();
   const [stats, setStats] = useState({
     itemsSold: 0,
     activeListings: 0,
@@ -31,7 +29,6 @@ const Profile = ({ onLogout }: ProfileProps) => {
       const { data } = await supabase.auth.getSession();
       console.log("Auth session data:", data);
       setSession(data.session);
-      setUserId(data.session?.user?.id);
     }
     
     getSession();
@@ -85,7 +82,6 @@ const Profile = ({ onLogout }: ProfileProps) => {
   const handleRefreshAuth = async () => {
     const { data } = await supabase.auth.getSession();
     setSession(data.session);
-    setUserId(data.session?.user?.id);
     if (data.session?.user?.id) {
       toast({ title: "Authentication successful", description: "Your profile has been loaded" });
     } else {
@@ -96,6 +92,9 @@ const Profile = ({ onLogout }: ProfileProps) => {
       });
     }
   };
+
+  // Check if this is a new user who needs to set up their profile
+  const isNewUser = isAuthenticated && (!profile || !profile.full_name || profile.full_name === "User");
 
   return (
     <div className="pb-20">
@@ -131,6 +130,24 @@ const Profile = ({ onLogout }: ProfileProps) => {
         )}
       </div>
 
+      {/* New User Welcome Card */}
+      {isNewUser && (
+        <div className="px-6 mb-4">
+          <Alert className="bg-blue-50 border-blue-200">
+            <AlertTitle className="text-blue-800 flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+              Welcome to Campus Marketplace!
+            </AlertTitle>
+            <AlertDescription className="text-blue-700 flex flex-col gap-2">
+              <p>Looks like you're new here. Set up your profile to get started!</p>
+              <EditProfileDialog 
+                trigger={<Button className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 mt-2">Complete Your Profile</Button>} 
+              />
+            </AlertDescription>
+          </Alert>
+        </div>  
+      )}
+
       <div className="bg-secondary">
         <header className="loop-header">
           <Button variant="ghost" size="icon" className="rounded-full">
@@ -146,7 +163,7 @@ const Profile = ({ onLogout }: ProfileProps) => {
             <img src={profile?.avatar_url || "https://images.unsplash.com/photo-1599566150163-29194dcaad36"} alt={profile?.full_name || "Profile"} />
           </Avatar>
           
-          <h1 className="text-2xl font-bold">{profile?.full_name || "Loading..."}</h1>
+          <h1 className="text-2xl font-bold">{profile?.full_name || "Complete Your Profile"}</h1>
           <p className="text-muted-foreground mb-3">{session?.user?.email}</p>
           
           <EditProfileDialog />

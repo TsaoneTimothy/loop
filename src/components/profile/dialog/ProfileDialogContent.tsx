@@ -10,7 +10,7 @@ import { useProfile } from "@/hooks/use-profile";
 import { toast } from "@/hooks/use-toast";
 
 export function ProfileDialogContent() {
-  const { profile, updateProfile, loading, isAuthenticated, userId } = useProfile();
+  const { profile, updateProfile, loading, isAuthenticated, userId, user } = useProfile();
   
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -28,8 +28,8 @@ export function ProfileDialogContent() {
     }
     setBio(profile?.bio || "");
     setAvatarUrl(profile?.avatar_url);
-    setEmail(profile?.email || "");
-  }, [profile]);
+    setEmail(user?.email || ""); // Use email from auth user
+  }, [profile, user]);
 
   const handleSaveChanges = async () => {
     setSaveAttempted(true);
@@ -61,8 +61,12 @@ export function ProfileDialogContent() {
         id: userId,
         full_name: fullName || "User", // Ensure full_name is not empty
         bio,
-        email,
-        avatar_url: avatarUrl
+        email // This will be filtered out in the updateProfile function
+      });
+      
+      toast({
+        title: "Profile updated",
+        description: "Your profile has been successfully updated"
       });
     } catch (error) {
       console.error("Failed to update profile:", error);

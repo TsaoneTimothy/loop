@@ -8,6 +8,7 @@ import { useState, useEffect } from "react";
 import { ThemeProvider } from "./context/ThemeContext";
 import { supabase } from "./integrations/supabase/client";
 import { Session } from "@supabase/supabase-js";
+import { toast } from "@/hooks/use-toast";
 
 // Pages
 import Login from "./pages/Login";
@@ -24,6 +25,7 @@ const queryClient = new QueryClient();
 
 const App = () => {
   const [session, setSession] = useState<Session | null>(null);
+  const [isNewUser, setIsNewUser] = useState<boolean>(false);
 
   // Check for existing session and set up auth listener
   useEffect(() => {
@@ -34,18 +36,57 @@ const App = () => {
 
     // Then set up the auth state change listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
+      (event, session) => {
+        console.log("Auth event:", event);
         setSession(session);
+        
+        // Check if this is a sign up event
+        if (event === 'SIGNED_IN' || event === 'SIGNED_UP') {
+          // Check if this is a new user
+          checkIfNewUser(session?.user?.id);
+        }
       }
     );
 
     return () => subscription.unsubscribe();
   }, []);
 
+  // Check if the user is new (no profile or incomplete profile)
+  const checkIfNewUser = async (userId: string | undefined) => {
+    if (!userId) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .maybeSingle();
+        
+      if (error) {
+        console.error("Error checking if user is new:", error);
+        return;
+      }
+      
+      // If no profile or profile with default name, consider as new user
+      const newUser = !data || !data.full_name || data.full_name === "User";
+      setIsNewUser(newUser);
+      
+      if (newUser) {
+        toast({
+          title: "Welcome to Campus Marketplace!",
+          description: "Please complete your profile to get started."
+        });
+      }
+    } catch (error) {
+      console.error("Error checking if user is new:", error);
+    }
+  };
+
   // Logout function using Supabase
   const handleLogout = async () => {
     await supabase.auth.signOut();
     setSession(null);
+    setIsNewUser(false);
   };
 
   return (
@@ -56,12 +97,12 @@ const App = () => {
           <Sonner />
           <BrowserRouter>
             <Routes>
-              <Route path="/login" element={!session ? <Login /> : <Navigate to="/feed" />} />
-              <Route path="/signup" element={!session ? <SignUp /> : <Navigate to="/feed" />} />
+              <Route path="/login" element={!session ? <Login /> : <Navigate to={isNewUser ? "/profile" : "/feed"} />} />
+              <Route path="/signup" element={!session ? <SignUp /> : <Navigate to={isNewUser ? "/profile" : "/feed"} />} />
               
               {/* Protected routes */}
               <Route path="/" element={session ? <Layout onLogout={handleLogout} /> : <Navigate to="/login" />}>
-                <Route index element={<Navigate to="/feed" replace />} />
+                <Route index element={<Navigate to={isNewUser ? "/profile" : "/feed"} replace />} />
                 <Route path="marketplace" element={<Marketplace />} />
                 <Route path="feed" element={<Feed />} />
                 <Route path="messages" element={<Messages />} />

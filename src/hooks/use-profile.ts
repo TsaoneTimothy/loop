@@ -8,7 +8,6 @@ export interface Profile {
   id: string;
   full_name: string | null;
   avatar_url: string | null;
-  email?: string | null;
   bio: string | null;
   created_at?: string;
   updated_at?: string;
@@ -89,7 +88,6 @@ export function useProfile() {
             id: userId,
             full_name: user?.user_metadata?.full_name || null,
             avatar_url: null,
-            email: user?.email || null,
             bio: null
           });
         }
@@ -108,7 +106,7 @@ export function useProfile() {
     fetchProfile();
   }, [userId, user]);
 
-  const updateProfile = async (updates: Partial<Profile>) => {
+  const updateProfile = async (updates: Partial<Profile> & { email?: string }) => {
     try {
       if (!userId) {
         console.error('Cannot update profile: No user ID available');
@@ -122,11 +120,14 @@ export function useProfile() {
 
       console.log('Updating profile with:', updates);
       
+      // Remove email from updates as it's not part of the profiles table
+      const { email, ...profileUpdates } = updates;
+      
       // Make sure the full_name field is included and not null
       const updatedProfile = {
-        ...updates,
+        ...profileUpdates,
         id: userId,
-        full_name: updates.full_name || profile?.full_name || ''
+        full_name: profileUpdates.full_name || profile?.full_name || ''
       };
       
       const { data, error } = await supabase
