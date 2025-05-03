@@ -6,6 +6,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { ThemeProvider } from "./context/ThemeContext";
+import { supabase } from "./integrations/supabase/client";
+import { Session } from "@supabase/supabase-js";
 
 // Pages
 import Login from "./pages/Login";
@@ -21,28 +23,29 @@ import Layout from "./components/Layout";
 const queryClient = new QueryClient();
 
 const App = () => {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [session, setSession] = useState<Session | null>(null);
 
-  // Check if user is logged in
+  // Check for existing session and set up auth listener
   useEffect(() => {
-    const user = localStorage.getItem("user");
-    if (user) {
-      setIsLoggedIn(true);
-    }
+    // First fetch the current session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+    });
+
+    // Then set up the auth state change listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        setSession(session);
+      }
+    );
+
+    return () => subscription.unsubscribe();
   }, []);
 
-  // Mock login function
-  const handleLogin = (email: string, password: string) => {
-    // In a real app, you would validate credentials
-    localStorage.setItem("user", JSON.stringify({ email }));
-    setIsLoggedIn(true);
-    return true;
-  };
-
-  // Mock logout function
-  const handleLogout = () => {
-    localStorage.removeItem("user");
-    setIsLoggedIn(false);
+  // Logout function using Supabase
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    setSession(null);
   };
 
   return (
@@ -53,11 +56,11 @@ const App = () => {
           <Sonner />
           <BrowserRouter>
             <Routes>
-              <Route path="/login" element={!isLoggedIn ? <Login onLogin={handleLogin} /> : <Navigate to="/feed" />} />
-              <Route path="/signup" element={!isLoggedIn ? <SignUp /> : <Navigate to="/feed" />} />
+              <Route path="/login" element={!session ? <Login /> : <Navigate to="/feed" />} />
+              <Route path="/signup" element={!session ? <SignUp /> : <Navigate to="/feed" />} />
               
               {/* Protected routes */}
-              <Route path="/" element={isLoggedIn ? <Layout onLogout={handleLogout} /> : <Navigate to="/login" />}>
+              <Route path="/" element={session ? <Layout onLogout={handleLogout} /> : <Navigate to="/login" />}>
                 <Route index element={<Navigate to="/feed" replace />} />
                 <Route path="marketplace" element={<Marketplace />} />
                 <Route path="feed" element={<Feed />} />

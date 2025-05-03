@@ -1,25 +1,25 @@
 
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Mail, Lock, Eye, EyeOff, Settings, Code, Key } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
-interface LoginProps {
-  onLogin: (email: string, password: string) => boolean;
-}
-
-const Login = ({ onLogin }: LoginProps) => {
+const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [authMethod, setAuthMethod] = useState("email");
+  const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
     if (!email || !password) {
       toast({
         title: "Error",
@@ -29,24 +29,64 @@ const Login = ({ onLogin }: LoginProps) => {
       return;
     }
     
-    const success = onLogin(email, password);
-    if (!success) {
+    try {
+      setIsLoading(true);
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
+      
+      if (error) {
+        throw error;
+      }
+      
+      if (data.session) {
+        toast({
+          title: "Login successful",
+          description: "Welcome back!",
+        });
+        navigate("/feed");
+      }
+    } catch (error: any) {
       toast({
         title: "Login Failed",
-        description: "Invalid credentials",
+        description: error.message || "Invalid credentials",
         variant: "destructive",
       });
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const handleDevLogin = () => {
-    // Use dummy credentials for quick developer access
-    onLogin("dev@example.com", "password123");
-    toast({
-      title: "Developer Mode",
-      description: "Logged in as developer",
-      variant: "default",
-    });
+  const handleDevLogin = async () => {
+    try {
+      setIsLoading(true);
+      // Use dummy credentials for quick developer access
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: "dev@example.com",
+        password: "password123"
+      });
+      
+      if (error) {
+        throw error;
+      }
+      
+      if (data.session) {
+        toast({
+          title: "Developer Mode",
+          description: "Logged in as developer",
+        });
+        navigate("/feed");
+      }
+    } catch (error: any) {
+      toast({
+        title: "Developer Login Failed",
+        description: "Create a dev account first or check credentials",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -90,6 +130,7 @@ const Login = ({ onLogin }: LoginProps) => {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="input-field"
+                    disabled={isLoading}
                   />
                 </div>
               </div>
@@ -102,6 +143,7 @@ const Login = ({ onLogin }: LoginProps) => {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     className="input-field pr-10"
+                    disabled={isLoading}
                   />
                   <button
                     type="button"
@@ -113,8 +155,8 @@ const Login = ({ onLogin }: LoginProps) => {
                 </div>
               </div>
               
-              <Button type="submit" className="w-full py-6 text-lg">
-                Sign In
+              <Button type="submit" className="w-full py-6 text-lg" disabled={isLoading}>
+                {isLoading ? "Signing In..." : "Sign In"}
               </Button>
             </form>
           </TabsContent>
@@ -131,9 +173,10 @@ const Login = ({ onLogin }: LoginProps) => {
           variant="outline" 
           className="w-full mb-4 py-6"
           onClick={handleDevLogin}
+          disabled={isLoading}
         >
           <Key className="mr-2 h-5 w-5 text-yellow-500" />
-          Developer Access
+          {isLoading ? "Signing In..." : "Developer Access"}
         </Button>
         
         <div className="relative my-6">
@@ -147,7 +190,7 @@ const Login = ({ onLogin }: LoginProps) => {
           </div>
         </div>
         
-        <Button variant="outline" className="w-full mb-4 py-6">
+        <Button variant="outline" className="w-full mb-4 py-6" disabled={true}>
           <svg className="mr-2 h-5 w-5" viewBox="0 0 24 24">
             <path
               d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"

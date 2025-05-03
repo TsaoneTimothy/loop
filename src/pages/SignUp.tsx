@@ -5,16 +5,18 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Eye, EyeOff, ArrowLeft } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 const SignUp = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!email || !password || !confirmPassword) {
@@ -35,13 +37,41 @@ const SignUp = () => {
       return;
     }
     
-    // Mock successful signup
-    toast({
-      title: "Account created",
-      description: "You can now login with your new account",
-    });
-    
-    navigate("/login");
+    try {
+      setIsLoading(true);
+      
+      // Register with Supabase
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+      });
+      
+      if (error) {
+        throw error;
+      }
+      
+      toast({
+        title: "Account created",
+        description: data.session ? "You are now logged in!" : "Please check your email for verification",
+      });
+      
+      // If session exists, user is already logged in, otherwise redirect to login
+      if (data.session) {
+        navigate("/feed");
+      } else {
+        navigate("/login");
+      }
+      
+    } catch (error: any) {
+      console.error("Signup error:", error);
+      toast({
+        title: "Sign up failed",
+        description: error.message || "There was an error creating your account",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -69,6 +99,7 @@ const SignUp = () => {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="input-field"
+              disabled={isLoading}
             />
           </div>
           
@@ -80,6 +111,7 @@ const SignUp = () => {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="input-field pr-10"
+                disabled={isLoading}
               />
               <button
                 type="button"
@@ -99,6 +131,7 @@ const SignUp = () => {
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 className="input-field pr-10"
+                disabled={isLoading}
               />
               <button
                 type="button"
@@ -110,8 +143,8 @@ const SignUp = () => {
             </div>
           </div>
           
-          <Button type="submit" className="w-full py-6 text-lg">
-            Sign Up
+          <Button type="submit" className="w-full py-6 text-lg" disabled={isLoading}>
+            {isLoading ? "Creating Account..." : "Sign Up"}
           </Button>
         </form>
         
@@ -126,7 +159,7 @@ const SignUp = () => {
           </div>
         </div>
         
-        <Button variant="outline" className="w-full mb-4 py-6">
+        <Button variant="outline" className="w-full mb-4 py-6" disabled={true}>
           <svg className="mr-2 h-5 w-5" viewBox="0 0 24 24">
             <path
               d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"

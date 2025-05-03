@@ -7,12 +7,10 @@ import { ProfileForm } from "../ProfileForm";
 import { ProfileDialogHeader } from "./ProfileDialogHeader";
 import { ProfileDialogFooter } from "./ProfileDialogFooter";
 import { useProfile } from "@/hooks/use-profile";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 
 export function ProfileDialogContent() {
-  const [userId, setUserId] = useState<string | undefined>(undefined);
-  const { profile, updateProfile, loading, isAuthenticated } = useProfile(userId);
+  const { profile, updateProfile, loading, isAuthenticated, userId } = useProfile();
   
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -20,18 +18,6 @@ export function ProfileDialogContent() {
   const [bio, setBio] = useState("");
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [saveAttempted, setSaveAttempted] = useState(false);
-
-  // Get current user on component mount
-  useEffect(() => {
-    async function getCurrentUser() {
-      const { data } = await supabase.auth.getSession();
-      console.log("Auth session in dialog:", data.session);
-      setUserId(data.session?.user?.id);
-      setEmail(data.session?.user?.email || "");
-    }
-    
-    getCurrentUser();
-  }, []);
 
   // Update local state when profile data loads
   useEffect(() => {
@@ -42,6 +28,7 @@ export function ProfileDialogContent() {
     }
     setBio(profile?.bio || "");
     setAvatarUrl(profile?.avatar_url);
+    setEmail(profile?.email || "");
   }, [profile]);
 
   const handleSaveChanges = async () => {
@@ -70,19 +57,12 @@ export function ProfileDialogContent() {
     
     try {
       console.log("Updating profile with:", { fullName, bio, avatarUrl, email });
-      const result = await updateProfile({
+      await updateProfile({
         id: userId,
         full_name: fullName || "User", // Ensure full_name is not empty
         bio,
-        email: email,
+        email,
         avatar_url: avatarUrl
-      });
-
-      console.log("Update profile result:", result);
-      
-      toast({
-        title: "Profile updated",
-        description: "Your profile has been updated successfully",
       });
     } catch (error) {
       console.error("Failed to update profile:", error);
