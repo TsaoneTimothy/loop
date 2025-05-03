@@ -1,12 +1,15 @@
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Camera, Tag, DollarSign, MapPin, FileText } from "lucide-react";
+import { Camera, Tag, DollarSign, MapPin, FileText, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import Logo from "@/components/shared/Logo";
+import { useImageUpload } from "@/hooks/use-image-upload";
+import { supabase } from "@/integrations/supabase/client";
 
 const categories = [
   "Textbooks",
@@ -26,18 +29,34 @@ const CreateListing = () => {
   const [images, setImages] = useState<string[]>([]);
   const { toast } = useToast();
   const navigate = useNavigate();
-
+  
+  // Use the image upload hook
+  const { previewUrl, fileInputRef, handleThumbnailClick, handleFileChange, handleRemove } = useImageUpload();
+  
+  // When we get a new preview URL, add it to our images array
   const handleImageUpload = () => {
-    const mockImageUrl = "https://images.unsplash.com/photo-1591370874773-6702e8f12fd8?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1074&q=80";
-    setImages([...images, mockImageUrl]);
+    handleThumbnailClick();
+  };
+  
+  // Watch for changes in previewUrl and update images
+  useState(() => {
+    if (previewUrl && !images.includes(previewUrl)) {
+      setImages([...images, previewUrl]);
+    }
+  });
+
+  const removeImage = (index: number) => {
+    const newImages = [...images];
+    newImages.splice(index, 1);
+    setImages(newImages);
     
-    toast({
-      title: "Image uploaded",
-      description: "Your image has been uploaded successfully.",
-    });
+    // If we removed the current preview, also clear the file input
+    if (images[index] === previewUrl) {
+      handleRemove();
+    }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!title || !price || !location || !selectedCategory) {
@@ -49,17 +68,62 @@ const CreateListing = () => {
       return;
     }
     
-    toast({
-      title: "Listing created",
-      description: "Your listing has been created successfully.",
-    });
-    
-    navigate("/marketplace");
+    try {
+      // Get current user
+      const { data: { session } } = await supabase.auth.getSession();
+      const userId = session?.user?.id;
+      
+      if (!userId) {
+        toast({
+          title: "Authentication required",
+          description: "Please log in to create a listing.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Save the listing to Supabase
+      const { data, error } = await supabase
+        .from('listings')
+        .insert({
+          title,
+          price: parseFloat(price),
+          location,
+          description,
+          category: selectedCategory,
+          images: images,
+          user_id: userId
+        });
+        
+      if (error) {
+        console.error("Error creating listing:", error);
+        toast({
+          title: "Error creating listing",
+          description: error.message,
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      toast({
+        title: "Listing created",
+        description: "Your listing has been created successfully.",
+      });
+      
+      navigate("/marketplace");
+    } catch (error) {
+      console.error("Error:", error);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
     <div className="pb-20">
-      <header className="loop-header flex items-center justify-between">
+      <header className="flex items-center justify-between p-4 border-b">
         <Logo />
       </header>
       
@@ -68,22 +132,39 @@ const CreateListing = () => {
           <Label className="text-lg font-semibold">Photos</Label>
           <div className="mt-2 grid grid-cols-3 gap-2">
             {images.map((img, index) => (
-              <div key={index} className="h-24 rounded-lg overflow-hidden">
+              <div key={index} className="h-24 rounded-lg overflow-hidden relative">
                 <img 
                   src={img} 
                   alt={`Upload ${index+1}`} 
                   className="w-full h-full object-cover"
                 />
+                <button
+                  type="button"
+                  onClick={() => removeImage(index)}
+                  className="absolute top-1 right-1 bg-black/60 text-white rounded-full p-1"
+                >
+                  <X className="h-4 w-4" />
+                </button>
               </div>
             ))}
-            <button
-              type="button"
-              onClick={handleImageUpload}
-              className="h-24 border-2 border-dashed border-muted-foreground rounded-lg flex flex-col items-center justify-center text-muted-foreground"
-            >
-              <Camera className="h-6 w-6 mb-1" />
-              <span className="text-sm">Add Photo</span>
-            </button>
+            {images.length < 6 && (
+              <button
+                type="button"
+                onClick={handleImageUpload}
+                className="h-24 border-2 border-dashed border-muted-foreground rounded-lg flex flex-col items-center justify-center text-muted-foreground"
+              >
+                <Camera className="h-6 w-6 mb-1" />
+                <span className="text-sm">Add Photo</span>
+              </button>
+            )}
+            {/* Hidden file input */}
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileChange}
+              className="hidden"
+              accept="image/*"
+            />
           </div>
         </div>
         

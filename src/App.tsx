@@ -41,9 +41,11 @@ const App = () => {
         setSession(session);
         
         // Check if this is a sign up event
-        if (event === 'SIGNED_IN' || event === 'SIGNED_UP') {
+        if (event === 'SIGNED_IN' && session?.user?.app_metadata?.provider === 'email') {
           // Check if this is a new user
           checkIfNewUser(session?.user?.id);
+        } else if (session?.user?.id) {
+          checkIfNewUser(session.user.id);
         }
       }
     );
