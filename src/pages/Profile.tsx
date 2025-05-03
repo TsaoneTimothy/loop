@@ -89,11 +89,6 @@ const Profile = ({ onLogout }: ProfileProps) => {
           </Button>
           <Button variant="ghost" size="icon" className="rounded-full relative">
             <Bell className="h-6 w-6" />
-            {/* {user.notificationCount > 0 && (
-              <span className="absolute top-0 right-0 h-5 w-5 bg-destructive text-destructive-foreground rounded-full text-xs flex items-center justify-center font-semibold">
-                {user.notificationCount}
-              </span>
-            )} */}
           </Button>
         </header>
         
@@ -105,16 +100,6 @@ const Profile = ({ onLogout }: ProfileProps) => {
           <h1 className="text-2xl font-bold">{profile?.full_name || "Loading..."}</h1>
           <p className="text-muted-foreground mb-3">{session?.user?.email}</p>
           
-          {profile?.website && (
-            <Badge className="bg-green-600 hover:bg-green-700 px-3 py-1 flex items-center gap-1 mb-3">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
-                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-                <polyline points="22 4 12 14.01 9 11.01"></polyline>
-              </svg>
-              {profile.website}
-            </Badge>
-          )}
-          
           <EditProfileDialog />
           
           <div className="flex justify-around w-full mt-4">
@@ -125,11 +110,6 @@ const Profile = ({ onLogout }: ProfileProps) => {
             
             <Button variant="ghost" size="icon" className="flex flex-col items-center relative">
               <Bell className="h-6 w-6 text-primary" />
-              {/* {user.notificationCount > 0 && (
-                <span className="absolute top-0 right-0 h-5 w-5 bg-destructive text-destructive-foreground rounded-full text-xs flex items-center justify-center font-semibold">
-                  {user.notificationCount}
-                </span>
-              )} */}
               <span className="text-xs mt-1">Notifications</span>
             </Button>
             

@@ -7,7 +7,7 @@ export interface Profile {
   id: string;
   full_name: string | null;
   avatar_url: string | null;
-  website: string | null;
+  email?: string | null;
   bio: string | null;
   created_at?: string;
   updated_at?: string;
@@ -25,6 +25,7 @@ export function useProfile(userId?: string) {
           return;
         }
         
+        console.log("Fetching profile for user ID:", userId);
         const { data, error } = await supabase
           .from('profiles')
           .select('*')
@@ -36,6 +37,7 @@ export function useProfile(userId?: string) {
           throw error;
         }
         
+        console.log("Fetched profile data:", data);
         // Ensure we're setting a Profile type with all required properties
         setProfile(data as Profile);
       } catch (error) {
@@ -57,22 +59,36 @@ export function useProfile(userId?: string) {
     try {
       if (!userId) {
         console.error('Cannot update profile: No user ID available');
-        return;
+        return null;
       }
 
       console.log('Updating profile with:', updates);
-      const { error } = await supabase
+      
+      // Make sure the id field matches the userId
+      const updatedProfile = {
+        ...updates,
+        id: userId
+      };
+      
+      const { data, error } = await supabase
         .from('profiles')
-        .update(updates)
-        .eq('id', userId);
+        .upsert(updatedProfile)
+        .select();
 
       if (error) {
         console.error('Error updating profile:', error);
         throw error;
       }
 
-      setProfile((prev) => prev ? { ...prev, ...updates } : null);
-      return true;
+      console.log("Profile update response:", data);
+      
+      // Update local state with the latest profile data
+      if (data && data.length > 0) {
+        setProfile(prev => ({ ...prev, ...data[0] }));
+        return data[0];
+      }
+      
+      return null;
     } catch (error) {
       console.error('Error in updateProfile:', error);
       toast({

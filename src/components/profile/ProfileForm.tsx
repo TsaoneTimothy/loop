@@ -8,22 +8,22 @@ import { useCharacterLimit } from "@/hooks/use-character-limit";
 interface ProfileFormProps {
   firstName: string;
   lastName: string;
-  website: string;
+  email: string;
   bio: string;
   onFirstNameChange: (value: string) => void;
   onLastNameChange: (value: string) => void;
-  onWebsiteChange: (value: string) => void;
+  onEmailChange: (value: string) => void;
   onBioChange: (value: string) => void;
 }
 
 export function ProfileForm({
   firstName,
   lastName,
-  website,
+  email,
   bio,
   onFirstNameChange,
   onLastNameChange,
-  onWebsiteChange,
+  onEmailChange,
   onBioChange,
 }: ProfileFormProps) {
   const id = useId();
@@ -70,18 +70,15 @@ export function ProfileForm({
         </div>
       </div>
       <div className="space-y-2">
-        <Label htmlFor={`${id}-website`}>Website</Label>
+        <Label htmlFor={`${id}-email`}>Email</Label>
         <div className="flex rounded-lg shadow-sm shadow-black/5">
-          <span className="-z-10 inline-flex items-center rounded-s-lg border border-input bg-background px-3 text-sm text-muted-foreground">
-            https://
-          </span>
           <Input
-            id={`${id}-website`}
-            className="-ms-px rounded-s-none shadow-none"
-            placeholder="yourwebsite.com"
-            value={website}
-            onChange={(e) => onWebsiteChange(e.target.value)}
-            type="text"
+            id={`${id}-email`}
+            className="shadow-none"
+            placeholder="youremail@example.com"
+            value={email}
+            onChange={(e) => onEmailChange(e.target.value)}
+            type="email"
           />
         </div>
       </div>

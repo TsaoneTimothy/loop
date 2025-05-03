@@ -16,7 +16,7 @@ export function ProfileDialogContent() {
   
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
-  const [website, setWebsite] = useState("");
+  const [email, setEmail] = useState("");
   const [bio, setBio] = useState("");
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
 
@@ -25,6 +25,7 @@ export function ProfileDialogContent() {
     async function getCurrentUser() {
       const { data } = await supabase.auth.getSession();
       setUserId(data.session?.user?.id);
+      setEmail(data.session?.user?.email || "");
     }
     
     getCurrentUser();
@@ -37,16 +38,15 @@ export function ProfileDialogContent() {
       setFirstName(nameParts[0] || "");
       setLastName(nameParts.slice(1).join(' ') || "");
     }
-    setWebsite(profile?.website || "");
     setBio(profile?.bio || "");
     setAvatarUrl(profile?.avatar_url);
   }, [profile]);
 
   const handleSaveChanges = async () => {
-    if (!profile) {
+    if (!userId) {
       toast({
         title: "Error",
-        description: "Unable to update profile. Profile not loaded.",
+        description: "Cannot update profile. User not authenticated.",
         variant: "destructive",
       });
       return;
@@ -56,13 +56,17 @@ export function ProfileDialogContent() {
     const fullName = `${firstName} ${lastName}`.trim();
     
     try {
-      await updateProfile({
+      console.log("Updating profile with:", { fullName, bio, avatarUrl });
+      const result = await updateProfile({
+        id: userId,
         full_name: fullName,
         bio,
-        website: website || null,
+        email: email,
         avatar_url: avatarUrl
       });
 
+      console.log("Update profile result:", result);
+      
       toast({
         title: "Profile updated",
         description: "Your profile has been updated successfully",
@@ -98,11 +102,11 @@ export function ProfileDialogContent() {
           <ProfileForm
             firstName={firstName}
             lastName={lastName}
-            website={website}
+            email={email}
             bio={bio}
             onFirstNameChange={setFirstName}
             onLastNameChange={setLastName}
-            onWebsiteChange={setWebsite}
+            onEmailChange={setEmail}
             onBioChange={setBio}
           />
         </div>
