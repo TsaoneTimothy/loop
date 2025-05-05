@@ -21,6 +21,7 @@ export interface FeedItem {
   saved: boolean;
   user: UserInfo;
   link?: string;
+  expiresAt?: string;
 }
 
 export interface FeedCategory {

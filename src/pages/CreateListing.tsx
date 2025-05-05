@@ -1,15 +1,19 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Camera, Tag, DollarSign, MapPin, FileText, X } from "lucide-react";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Calendar, Clock } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Camera, Tag, DollarSign, MapPin, FileText, X, CalendarIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import Logo from "@/components/shared/Logo";
 import { useImageUpload } from "@/hooks/use-image-upload";
 import { supabase } from "@/integrations/supabase/client";
+import { format } from "date-fns";
 
 const categories = [
   "Textbooks",
@@ -20,12 +24,21 @@ const categories = [
   "Other"
 ];
 
+const postTypes = [
+  { id: "product", name: "Product Listing", description: "List an item for sale in the marketplace" },
+  { id: "discount", name: "Discount Promotion", description: "Share a discount or special offer" },
+  { id: "news", name: "News/Announcement", description: "Share campus news or announcements" }
+];
+
 const CreateListing = () => {
   const [title, setTitle] = useState("");
   const [price, setPrice] = useState("");
   const [location, setLocation] = useState("");
   const [description, setDescription] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [selectedPostType, setSelectedPostType] = useState("product");
+  const [expiryDate, setExpiryDate] = useState<Date | undefined>(undefined);
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [images, setImages] = useState<string[]>([]);
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -34,16 +47,15 @@ const CreateListing = () => {
   const { previewUrl, fileInputRef, handleThumbnailClick, handleFileChange, handleRemove } = useImageUpload();
   
   // When we get a new preview URL, add it to our images array
-  const handleImageUpload = () => {
-    handleThumbnailClick();
-  };
-  
-  // Watch for changes in previewUrl and update images
-  useState(() => {
+  useEffect(() => {
     if (previewUrl && !images.includes(previewUrl)) {
       setImages([...images, previewUrl]);
     }
-  });
+  }, [previewUrl, images]);
+  
+  const handleImageUpload = () => {
+    handleThumbnailClick();
+  };
 
   const removeImage = (index: number) => {
     const newImages = [...images];
@@ -59,10 +71,31 @@ const CreateListing = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!title || !price || !location || !selectedCategory) {
+    // Validate required fields based on post type
+    if (!title || !description || !selectedPostType) {
       toast({
         title: "Missing fields",
         description: "Please fill in all required fields.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Additional validation for products
+    if (selectedPostType === "product" && (!price || !location || !selectedCategory)) {
+      toast({
+        title: "Missing fields",
+        description: "Product listings require price, location, and category.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validation for discount promotions
+    if (selectedPostType === "discount" && !expiryDate) {
+      toast({
+        title: "Missing expiry date",
+        description: "Please select when this discount expires.",
         variant: "destructive",
       });
       return;
@@ -82,18 +115,34 @@ const CreateListing = () => {
         return;
       }
       
+      // Common listing data
+      const listingData: any = {
+        title,
+        description,
+        images,
+        user_id: userId,
+        post_type: selectedPostType
+      };
+
+      // Add post type specific fields
+      if (selectedPostType === "product") {
+        listingData.price = parseFloat(price);
+        listingData.location = location;
+        listingData.category = selectedCategory;
+      } else if (selectedPostType === "discount") {
+        listingData.price = price ? parseFloat(price) : null;
+        listingData.expires_at = expiryDate?.toISOString();
+        listingData.location = location || "Campus-wide";
+      } else if (selectedPostType === "news") {
+        // News posts don't require price
+        listingData.price = null;
+        listingData.location = location || "Campus";
+      }
+      
       // Save the listing to Supabase
       const { data, error } = await supabase
         .from('listings')
-        .insert({
-          title,
-          price: parseFloat(price),
-          location,
-          description,
-          category: selectedCategory,
-          images: images,
-          user_id: userId
-        });
+        .insert(listingData);
         
       if (error) {
         console.error("Error creating listing:", error);
@@ -106,11 +155,18 @@ const CreateListing = () => {
       }
       
       toast({
-        title: "Listing created",
-        description: "Your listing has been created successfully.",
+        title: "Post created successfully!",
+        description: `Your ${selectedPostType} has been posted.`,
       });
       
-      navigate("/marketplace");
+      // Navigate based on post type
+      if (selectedPostType === "product") {
+        navigate("/marketplace");
+      } else if (selectedPostType === "news" || selectedPostType === "discount") {
+        navigate("/feed");
+      } else {
+        navigate("/marketplace");
+      }
     } catch (error) {
       console.error("Error:", error);
       toast({
@@ -128,6 +184,26 @@ const CreateListing = () => {
       </header>
       
       <form onSubmit={handleSubmit} className="px-6 py-4 space-y-6">
+        {/* Post Type Selection */}
+        <div>
+          <Label className="text-lg font-semibold">What are you posting?</Label>
+          <RadioGroup
+            value={selectedPostType}
+            onValueChange={setSelectedPostType}
+            className="mt-2 grid gap-2"
+          >
+            {postTypes.map((type) => (
+              <div key={type.id} className="flex items-center space-x-2">
+                <RadioGroupItem value={type.id} id={type.id} />
+                <Label htmlFor={type.id} className="flex flex-col">
+                  <span className="font-medium">{type.name}</span>
+                  <span className="text-sm text-muted-foreground">{type.description}</span>
+                </Label>
+              </div>
+            ))}
+          </RadioGroup>
+        </div>
+
         <div>
           <Label className="text-lg font-semibold">Photos</Label>
           <div className="mt-2 grid grid-cols-3 gap-2">
@@ -181,19 +257,23 @@ const CreateListing = () => {
           </div>
         </div>
         
-        <div>
-          <div className="flex items-center bg-card px-4 py-3 rounded-lg">
-            <DollarSign className="h-5 w-5 text-muted-foreground mr-3" />
-            <Input
-              type="text"
-              placeholder="Price"
-              value={price}
-              onChange={(e) => setPrice(e.target.value)}
-              className="border-0 bg-transparent focus-visible:ring-0 p-0"
-            />
+        {/* Show price field for products and optionally for discounts */}
+        {(selectedPostType === "product" || selectedPostType === "discount") && (
+          <div>
+            <div className="flex items-center bg-card px-4 py-3 rounded-lg">
+              <DollarSign className="h-5 w-5 text-muted-foreground mr-3" />
+              <Input
+                type="text"
+                placeholder={selectedPostType === "product" ? "Price" : "Discount Amount (optional)"}
+                value={price}
+                onChange={(e) => setPrice(e.target.value)}
+                className="border-0 bg-transparent focus-visible:ring-0 p-0"
+              />
+            </div>
           </div>
-        </div>
+        )}
         
+        {/* Show location field for all types */}
         <div>
           <div className="flex items-center bg-card px-4 py-3 rounded-lg">
             <MapPin className="h-5 w-5 text-muted-foreground mr-3" />
@@ -207,22 +287,54 @@ const CreateListing = () => {
           </div>
         </div>
         
-        <div>
-          <Label className="text-lg font-semibold">Category</Label>
-          <div className="mt-2 grid grid-cols-3 gap-2">
-            {categories.map((category) => (
-              <Button
-                key={category}
-                type="button"
-                variant={selectedCategory === category ? "default" : "outline"}
-                className={`h-10 ${selectedCategory === category ? "bg-primary" : "bg-secondary"}`}
-                onClick={() => setSelectedCategory(category)}
-              >
-                {category}
-              </Button>
-            ))}
+        {/* Show expiry date for discount promotions */}
+        {selectedPostType === "discount" && (
+          <div>
+            <Label className="text-lg font-semibold">Expiry Date</Label>
+            <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className="w-full justify-start text-left font-normal mt-2"
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {expiryDate ? format(expiryDate, "PPP") : <span>Pick an expiry date</span>}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={expiryDate}
+                  onSelect={(date) => {
+                    setExpiryDate(date);
+                    setIsCalendarOpen(false);
+                  }}
+                  initialFocus
+                />
+              </PopoverContent>
+            </Popover>
           </div>
-        </div>
+        )}
+        
+        {/* Show category selector only for products */}
+        {selectedPostType === "product" && (
+          <div>
+            <Label className="text-lg font-semibold">Category</Label>
+            <div className="mt-2 grid grid-cols-3 gap-2">
+              {categories.map((category) => (
+                <Button
+                  key={category}
+                  type="button"
+                  variant={selectedCategory === category ? "default" : "outline"}
+                  className={`h-10 ${selectedCategory === category ? "bg-primary" : "bg-secondary"}`}
+                  onClick={() => setSelectedCategory(category)}
+                >
+                  {category}
+                </Button>
+              ))}
+            </div>
+          </div>
+        )}
         
         <div>
           <div className="flex items-start bg-card px-4 py-3 rounded-lg">
@@ -237,7 +349,8 @@ const CreateListing = () => {
         </div>
         
         <Button type="submit" className="w-full py-6 mt-6">
-          Create Listing
+          {selectedPostType === "product" ? "List Item" : 
+           selectedPostType === "discount" ? "Post Discount" : "Post Announcement"}
         </Button>
       </form>
     </div>

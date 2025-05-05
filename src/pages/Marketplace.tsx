@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 // Import components
 import MarketplaceHeader from "@/components/marketplace/MarketplaceHeader";
@@ -8,18 +8,136 @@ import HotDealsSection from "@/components/marketplace/HotDealsSection";
 import FeaturedItems from "@/components/marketplace/FeaturedItems";
 import RecentListingsSection from "@/components/marketplace/RecentListingsSection";
 import CreateListingButton from "@/components/marketplace/CreateListingButton";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 // Import mock data
-import { 
-  categories, 
-  discounts, 
-  featuredItems, 
-  recentListings 
-} from "@/components/marketplace/data";
+import { categories, discounts as mockDiscounts } from "@/components/marketplace/data";
 
 const Marketplace = () => {
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
+  const [featuredItems, setFeaturedItems] = useState<any[]>([]);
+  const [recentListings, setRecentListings] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
+
+  // Fetch product listings from supabase
+  useEffect(() => {
+    async function fetchListings() {
+      setLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from('listings')
+          .select(`
+            id,
+            title,
+            description,
+            created_at,
+            images,
+            price,
+            location,
+            category,
+            post_type,
+            user_id,
+            profiles:user_id (
+              id,
+              full_name,
+              avatar_url
+            )
+          `)
+          .eq('post_type', 'product')
+          .order('created_at', { ascending: false });
+
+        if (error) {
+          throw error;
+        }
+
+        // Transform to featured items
+        const items = data.map(item => ({
+          id: parseInt(item.id),
+          title: item.title,
+          price: `₱${item.price}`,
+          condition: item.category || 'Used',
+          location: item.location,
+          category: item.category || 'Other',
+          image: item.images && item.images.length > 0 
+            ? item.images[0] 
+            : 'https://images.unsplash.com/photo-1523275335684-37898b6baf30',
+          seller: {
+            id: parseInt(item.profiles?.id || '0'),
+            name: item.profiles?.full_name || 'Anonymous',
+            avatar: item.profiles?.avatar_url || 'https://images.unsplash.com/photo-1568602471122-7832951cc4c5'
+          },
+          description: item.description
+        }));
+
+        // Split to featured and recent
+        setFeaturedItems(items.slice(0, 8));
+        setRecentListings(items.slice(0, 4)); // Just get the first 4 for recent listings
+
+      } catch (error) {
+        console.error('Error fetching listings:', error);
+        toast({
+          title: 'Error fetching listings',
+          description: 'Could not load product listings. Please try again later.',
+          variant: 'destructive'
+        });
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchListings();
+  }, [toast]);
+
+  // Fetch discounts for Hot Deals section
+  const [discounts, setDiscounts] = useState(mockDiscounts);
+  
+  useEffect(() => {
+    async function fetchDiscounts() {
+      try {
+        const { data, error } = await supabase
+          .from('listings')
+          .select(`
+            id,
+            title,
+            location as store,
+            expires_at,
+            images
+          `)
+          .eq('post_type', 'discount')
+          .order('created_at', { ascending: false })
+          .limit(5);
+
+        if (error) {
+          throw error;
+        }
+
+        if (data && data.length > 0) {
+          const transformedDiscounts = data.map(item => ({
+            id: parseInt(item.id),
+            title: item.title,
+            store: item.store || 'Campus Store',
+            expiresIn: item.expires_at 
+              ? new Date(item.expires_at) > new Date() 
+                ? `${Math.ceil((new Date(item.expires_at).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))} days` 
+                : 'Expired'
+              : 'Limited time',
+            image: item.images && item.images.length > 0 
+              ? item.images[0] 
+              : 'https://images.unsplash.com/photo-1607082350899-7e105aa886ae'
+          }));
+          
+          setDiscounts(transformedDiscounts);
+        }
+      } catch (error) {
+        console.error('Error fetching discounts:', error);
+      }
+    }
+
+    fetchDiscounts();
+  }, []);
 
   return (
     <div className="pb-20 md:pb-10">
@@ -38,10 +156,16 @@ const Marketplace = () => {
       
       <div className="md:grid md:grid-cols-12 md:gap-6 md:px-8 md:py-6">
         <div className="md:col-span-8">
-          <FeaturedItems 
-            items={featuredItems} 
-            selectedCategory={selectedCategory}
-          />
+          {loading ? (
+            <div className="flex justify-center items-center py-10">
+              <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary"></div>
+            </div>
+          ) : (
+            <FeaturedItems 
+              items={featuredItems} 
+              selectedCategory={selectedCategory}
+            />
+          )}
         </div>
         
         <div className="md:col-span-4">

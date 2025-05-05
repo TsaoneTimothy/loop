@@ -1,6 +1,6 @@
 
 import React from "react";
-import { Bookmark, Heart, MessageSquare, Share2, Calendar, Store, Newspaper, Tag, Tags } from "lucide-react";
+import { Bookmark, Heart, MessageSquare, Share2, Calendar, Store, Newspaper, Tag, Tags, Clock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -29,6 +29,7 @@ interface PostItemProps {
   user: UserInfo;
   onToggleSaved: (id: number) => void;
   link?: string;
+  expiresAt?: string;
 }
 
 const PostItem = ({ 
@@ -44,7 +45,8 @@ const PostItem = ({
   saved, 
   user, 
   onToggleSaved,
-  link
+  link,
+  expiresAt
 }: PostItemProps) => {
   const renderTitle = () => {
     if (link) {
@@ -111,7 +113,7 @@ const PostItem = ({
           variant={
             type === "event" 
               ? "secondary" 
-              : type === "announcement" 
+              : type === "announcement" || type === "news"
                 ? "destructive" 
                 : type === "store" 
                   ? "default" 
@@ -124,16 +126,12 @@ const PostItem = ({
           className="px-3 py-1 capitalize flex items-center gap-1"
         >
           {type === "event" && <Calendar className="h-3 w-3" />}
-          {type === "announcement" && "Announcement"}
-          {type === "store" && <Store className="h-3 w-3" />}
+          {type === "announcement" && <Newspaper className="h-3 w-3" />}
           {type === "news" && <Newspaper className="h-3 w-3" />}
+          {type === "store" && <Store className="h-3 w-3" />}
           {type === "discount" && <Tag className="h-3 w-3" />}
           {type === "coupon" && <Tags className="h-3 w-3" />}
-          {type === "event" && "Event"}
-          {type === "store" && "Store"}
-          {type === "news" && "News"}
-          {type === "discount" && "Discount"}
-          {type === "coupon" && "Coupon"}
+          {type}
         </Badge>
         <span className="text-muted-foreground text-xs">{date}</span>
       </div>
@@ -141,6 +139,14 @@ const PostItem = ({
       {/* Post Title */}
       {renderTitle()}
       <p className="text-muted-foreground text-sm mb-4">{description}</p>
+      
+      {/* Expiry date for discounts */}
+      {type === "discount" && expiresAt && (
+        <div className="flex items-center gap-1 mb-3 text-sm">
+          <Clock className="h-4 w-4 text-muted-foreground" />
+          <span className="text-muted-foreground">Expires: {expiresAt}</span>
+        </div>
+      )}
       
       {/* Card Image - Responsive based on orientation */}
       <div 
