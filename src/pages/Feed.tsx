@@ -19,6 +19,21 @@ const Feed = () => {
     async function fetchFeedItems() {
       setLoading(true);
       try {
+        // Check if post_type column exists
+        const { error: checkError } = await supabase
+          .from('listings')
+          .select('post_type')
+          .limit(1)
+          .maybeSingle();
+
+        if (checkError && checkError.message.includes("post_type")) {
+          // If post_type column doesn't exist yet, show an empty feed
+          console.error("post_type column doesn't exist yet:", checkError);
+          setItems([]);
+          setLoading(false);
+          return;
+        }
+
         const { data: listingsData, error: listingsError } = await supabase
           .from('listings')
           .select(`
@@ -44,6 +59,12 @@ const Feed = () => {
 
         if (listingsError) {
           throw listingsError;
+        }
+
+        if (!listingsData) {
+          setItems([]);
+          setLoading(false);
+          return;
         }
 
         // Transform the listings data into FeedItems
