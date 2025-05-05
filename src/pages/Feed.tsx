@@ -57,12 +57,12 @@ const Feed = () => {
 
         // Transform the listings data into FeedItems
         const feedItems: FeedItem[] = listingsData.map(item => {
-          const user = item.profiles || {};
+          const userProfile = item.profiles || {};
           
           return {
-            id: parseInt(item.id),
-            type: item.post_type,
-            title: item.title,
+            id: parseInt(item.id) || 0,
+            type: item.post_type || '',
+            title: item.title || '',
             description: item.description || '',
             date: new Date(item.created_at).toLocaleDateString(),
             image: item.images && item.images.length > 0 ? item.images[0] : 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f',
@@ -71,10 +71,10 @@ const Feed = () => {
             comments: 0,
             saved: false,
             user: {
-              id: parseInt(user.id || '0'),
-              name: user.full_name || 'Anonymous',
-              username: user.full_name?.toLowerCase().replace(/\s/g, '') || 'anonymous',
-              avatar: user.avatar_url || 'https://images.unsplash.com/photo-1568602471122-7832951cc4c5',
+              id: userProfile.id ? parseInt(userProfile.id) : 0,
+              name: userProfile.full_name || 'Anonymous',
+              username: userProfile.full_name ? userProfile.full_name.toLowerCase().replace(/\s/g, '') : 'anonymous',
+              avatar: userProfile.avatar_url || 'https://images.unsplash.com/photo-1568602471122-7832951cc4c5',
               role: item.post_type === 'discount' ? 'merchant' : 'student',
               verified: false
             },

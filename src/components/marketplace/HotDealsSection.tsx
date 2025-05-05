@@ -5,8 +5,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
 
+// Update the discount interface to use string for id
 interface Discount {
-  id: number;
+  id: string;
   title: string;
   store: string;
   expiresIn: string;

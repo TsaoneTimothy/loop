@@ -14,12 +14,22 @@ import { supabase } from "@/integrations/supabase/client";
 // Import mock data
 import { categories, discounts as mockDiscounts } from "@/components/marketplace/data";
 
+// Update the discount type to use string for id to match the database
+interface Discount {
+  id: string;
+  title: string;
+  store: string;
+  expiresIn: string;
+  image: string;
+}
+
 const Marketplace = () => {
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
   const [featuredItems, setFeaturedItems] = useState<any[]>([]);
   const [recentListings, setRecentListings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [discounts, setDiscounts] = useState<Discount[]>(mockDiscounts.map(d => ({...d, id: String(d.id)})));
   const { toast } = useToast();
 
   // Fetch product listings from supabase
@@ -65,23 +75,27 @@ const Marketplace = () => {
         }
 
         // Transform to featured items
-        const items = data.map(item => ({
-          id: item.id,
-          title: item.title,
-          price: `₱${item.price}`,
-          condition: item.category || 'Used',
-          location: item.location,
-          category: item.category || 'Other',
-          image: item.images && item.images.length > 0 
-            ? item.images[0] 
-            : 'https://images.unsplash.com/photo-1523275335684-37898b6baf30',
-          seller: {
-            id: item.profiles?.id || '0',
-            name: item.profiles?.full_name || 'Anonymous',
-            avatar: item.profiles?.avatar_url || 'https://images.unsplash.com/photo-1568602471122-7832951cc4c5'
-          },
-          description: item.description
-        }));
+        const items = data.map(item => {
+          const userProfile = item.profiles || {};
+          
+          return {
+            id: item.id,
+            title: item.title,
+            price: `₱${item.price}`,
+            condition: item.category || 'Used',
+            location: item.location,
+            category: item.category || 'Other',
+            image: item.images && item.images.length > 0 
+              ? item.images[0] 
+              : 'https://images.unsplash.com/photo-1523275335684-37898b6baf30',
+            seller: {
+              id: userProfile.id || '0',
+              name: userProfile.full_name || 'Anonymous',
+              avatar: userProfile.avatar_url || 'https://images.unsplash.com/photo-1568602471122-7832951cc4c5'
+            },
+            description: item.description
+          };
+        });
 
         // Split to featured and recent
         setFeaturedItems(items.slice(0, 8));
@@ -103,8 +117,6 @@ const Marketplace = () => {
   }, [toast]);
 
   // Fetch discounts for Hot Deals section
-  const [discounts, setDiscounts] = useState(mockDiscounts);
-  
   useEffect(() => {
     async function fetchDiscounts() {
       try {
@@ -127,8 +139,8 @@ const Marketplace = () => {
         }
 
         if (data && data.length > 0) {
-          const transformedDiscounts = data.map(item => ({
-            id: item.id,
+          const transformedDiscounts: Discount[] = data.map(item => ({
+            id: item.id, // Now this is a string id matching the DB
             title: item.title,
             store: item.location || 'Campus Store',
             expiresIn: item.expires_at 
