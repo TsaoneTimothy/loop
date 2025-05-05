@@ -128,9 +128,11 @@ export type Database = {
           category: string
           created_at: string | null
           description: string | null
+          expires_at: string | null
           id: string
           images: string[]
           location: string
+          post_type: string
           price: number
           title: string
           updated_at: string | null
@@ -140,9 +142,11 @@ export type Database = {
           category: string
           created_at?: string | null
           description?: string | null
+          expires_at?: string | null
           id?: string
           images?: string[]
           location: string
+          post_type: string
           price: number
           title: string
           updated_at?: string | null
@@ -152,9 +156,11 @@ export type Database = {
           category?: string
           created_at?: string | null
           description?: string | null
+          expires_at?: string | null
           id?: string
           images?: string[]
           location?: string
+          post_type?: string
           price?: number
           title?: string
           updated_at?: string | null

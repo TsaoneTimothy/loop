@@ -27,21 +27,6 @@ const Marketplace = () => {
     async function fetchListings() {
       setLoading(true);
       try {
-        // Check if post_type column exists
-        const { error: checkError } = await supabase
-          .from('listings')
-          .select('post_type')
-          .limit(1)
-          .maybeSingle();
-
-        if (checkError && checkError.message.includes("post_type")) {
-          console.error("post_type column doesn't exist yet:", checkError);
-          setFeaturedItems([]);
-          setRecentListings([]);
-          setLoading(false);
-          return;
-        }
-
         const { data, error } = await supabase
           .from('listings')
           .select(`
@@ -65,7 +50,11 @@ const Marketplace = () => {
           .order('created_at', { ascending: false });
 
         if (error) {
-          throw error;
+          console.error("Error fetching listings:", error);
+          setFeaturedItems([]);
+          setRecentListings([]);
+          setLoading(false);
+          return;
         }
 
         if (!data || data.length === 0) {
@@ -77,7 +66,7 @@ const Marketplace = () => {
 
         // Transform to featured items
         const items = data.map(item => ({
-          id: parseInt(item.id),
+          id: item.id,
           title: item.title,
           price: `₱${item.price}`,
           condition: item.category || 'Used',
@@ -87,7 +76,7 @@ const Marketplace = () => {
             ? item.images[0] 
             : 'https://images.unsplash.com/photo-1523275335684-37898b6baf30',
           seller: {
-            id: parseInt(item.profiles?.id || '0'),
+            id: item.profiles?.id || '0',
             name: item.profiles?.full_name || 'Anonymous',
             avatar: item.profiles?.avatar_url || 'https://images.unsplash.com/photo-1568602471122-7832951cc4c5'
           },
@@ -119,18 +108,6 @@ const Marketplace = () => {
   useEffect(() => {
     async function fetchDiscounts() {
       try {
-        // Check if post_type column exists
-        const { error: checkError } = await supabase
-          .from('listings')
-          .select('post_type')
-          .limit(1)
-          .maybeSingle();
-
-        if (checkError && checkError.message.includes("post_type")) {
-          console.error("post_type column doesn't exist yet:", checkError);
-          return;
-        }
-
         const { data, error } = await supabase
           .from('listings')
           .select(`
@@ -145,12 +122,13 @@ const Marketplace = () => {
           .limit(5);
 
         if (error) {
-          throw error;
+          console.error("Error fetching discounts:", error);
+          return;
         }
 
         if (data && data.length > 0) {
           const transformedDiscounts = data.map(item => ({
-            id: parseInt(item.id),
+            id: item.id,
             title: item.title,
             store: item.location || 'Campus Store',
             expiresIn: item.expires_at 

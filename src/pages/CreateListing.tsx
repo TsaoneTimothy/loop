@@ -139,8 +139,10 @@ const CreateListing = () => {
         listingData.location = location || "Campus";
       }
       
+      console.log("Creating listing with data:", listingData);
+      
       // Save the listing to Supabase
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('listings')
         .insert(listingData);
         
@@ -167,11 +169,11 @@ const CreateListing = () => {
       } else {
         navigate("/marketplace");
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error:", error);
       toast({
         title: "Error",
-        description: "An unexpected error occurred.",
+        description: error.message || "An unexpected error occurred.",
         variant: "destructive",
       });
     }
