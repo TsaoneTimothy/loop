@@ -27,6 +27,21 @@ const Marketplace = () => {
     async function fetchListings() {
       setLoading(true);
       try {
+        // Check if post_type column exists
+        const { error: checkError } = await supabase
+          .from('listings')
+          .select('post_type')
+          .limit(1)
+          .maybeSingle();
+
+        if (checkError && checkError.message.includes("post_type")) {
+          console.error("post_type column doesn't exist yet:", checkError);
+          setFeaturedItems([]);
+          setRecentListings([]);
+          setLoading(false);
+          return;
+        }
+
         const { data, error } = await supabase
           .from('listings')
           .select(`
@@ -51,6 +66,13 @@ const Marketplace = () => {
 
         if (error) {
           throw error;
+        }
+
+        if (!data || data.length === 0) {
+          setFeaturedItems([]);
+          setRecentListings([]);
+          setLoading(false);
+          return;
         }
 
         // Transform to featured items
@@ -97,12 +119,24 @@ const Marketplace = () => {
   useEffect(() => {
     async function fetchDiscounts() {
       try {
+        // Check if post_type column exists
+        const { error: checkError } = await supabase
+          .from('listings')
+          .select('post_type')
+          .limit(1)
+          .maybeSingle();
+
+        if (checkError && checkError.message.includes("post_type")) {
+          console.error("post_type column doesn't exist yet:", checkError);
+          return;
+        }
+
         const { data, error } = await supabase
           .from('listings')
           .select(`
             id,
             title,
-            location as store,
+            location,
             expires_at,
             images
           `)
@@ -118,7 +152,7 @@ const Marketplace = () => {
           const transformedDiscounts = data.map(item => ({
             id: parseInt(item.id),
             title: item.title,
-            store: item.store || 'Campus Store',
+            store: item.location || 'Campus Store',
             expiresIn: item.expires_at 
               ? new Date(item.expires_at) > new Date() 
                 ? `${Math.ceil((new Date(item.expires_at).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))} days` 
