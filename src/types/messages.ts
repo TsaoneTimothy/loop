@@ -21,3 +21,15 @@ export interface Conversation {
   lastMessage?: Message;
   unreadCount: number;
 }
+
+export interface ConversationWithProfiles {
+  id: string;
+  participants: string[];
+  last_message?: string;
+  last_message_time?: string;
+  profiles: {
+    id: string;
+    full_name: string;
+    avatar_url?: string;
+  }[];
+}

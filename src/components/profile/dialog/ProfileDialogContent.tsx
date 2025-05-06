@@ -60,7 +60,7 @@ export function ProfileDialogContent() {
       console.log("Updating profile with:", { fullName, bio, avatarUrl, email });
       
       // Update profile data
-      const profileData = {
+      const profileData: any = {
         id: userId,
         full_name: fullName || "User", // Ensure full_name is not empty
         bio,

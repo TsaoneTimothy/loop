@@ -8,7 +8,7 @@ import { useSearchParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useProfile } from "@/hooks/use-profile";
 import { useToast } from "@/hooks/use-toast";
-import { Message, MessageUser } from "@/types/messages";
+import { Message, MessageUser, ConversationWithProfiles } from "@/types/messages";
 
 // Mock data for messages
 const mockMessages = [
@@ -145,68 +145,9 @@ const Messages = () => {
     const fetchConversations = async () => {
       setLoading(true);
       try {
-        // First check if the conversations table exists
-        const { error: tableCheckError } = await supabase
-          .from('conversations')
-          .select('id')
-          .limit(1);
-        
-        // If table doesn't exist, use mock data
-        if (tableCheckError) {
-          console.log("Using mock conversation data");
-          setConversations(mockMessages);
-          setLoading(false);
-          return;
-        }
-
-        // Get all conversations where the current user is a participant
-        const { data, error } = await supabase
-          .from('conversations')
-          .select(`
-            id,
-            participants,
-            last_message,
-            last_message_time,
-            profiles!conversations_participant_profiles_fkey(
-              id,
-              full_name,
-              avatar_url
-            )
-          `)
-          .contains('participants', [userId]);
-        
-        if (error) {
-          console.error("Error fetching conversations:", error);
-          // Fall back to mock data
-          setConversations(mockMessages);
-          setLoading(false);
-          return;
-        }
-
-        if (data && data.length > 0) {
-          // Format conversations for display
-          const formattedConversations = data.map(conv => {
-            // Find the other participant (not the current user)
-            const otherParticipantId = conv.participants.find(p => p !== userId);
-            const otherParticipantProfile = conv.profiles.find(p => p.id === otherParticipantId);
-            
-            return {
-              id: conv.id,
-              sellerId: otherParticipantId,
-              name: otherParticipantProfile?.full_name || 'User',
-              message: conv.last_message || 'Start a conversation!',
-              time: conv.last_message_time ? new Date(conv.last_message_time).toLocaleString() : 'Now',
-              avatar: otherParticipantProfile?.avatar_url || 'https://images.unsplash.com/photo-1599566150163-29194dcaad36',
-              online: false,
-              unread: 0
-            };
-          });
-          
-          setConversations(formattedConversations);
-        } else {
-          // No conversations found, use mock data as placeholders
-          setConversations(mockMessages);
-        }
+        console.log("Using mock conversation data");
+        setConversations(mockMessages);
+        setLoading(false);
       } catch (error) {
         console.error("Error in fetchConversations:", error);
         setConversations(mockMessages);
@@ -243,41 +184,9 @@ const Messages = () => {
               avatar: sellerProfile.avatar_url || 'https://images.unsplash.com/photo-1599566150163-29194dcaad36'
             });
             
-            // Check if conversation already exists
-            const { data: existingConversation, error: convError } = await supabase
-              .from('conversations')
-              .select('id')
-              .contains('participants', [userId, sellerId])
-              .maybeSingle();
-              
-            // If there's an error checking for the conversation, it might be because the table doesn't exist yet
-            if (convError && !convError.message.includes('does not exist')) {
-              console.error("Error checking conversation:", convError);
-            }
-            
-            // If conversation doesn't exist, create it
-            if (!existingConversation && userId && !convError) {
-              const { data: newConv, error: createError } = await supabase
-                .from('conversations')
-                .insert([{
-                  participants: [userId, sellerId],
-                  participant_profiles: [userId, sellerId]
-                }])
-                .select();
-                
-              if (createError) {
-                console.error("Error creating conversation:", createError);
-              }
-            }
-            
-            // Load messages for this conversation
-            if (existingConversation) {
-              fetchMessages(existingConversation.id);
-            } else {
-              // Use mock conversation data until we can create a real one
-              const mockConversation = mockConversations[sellerId] || [];
-              loadMockMessages(mockConversation);
-            }
+            // Use mock conversation data until we implement a real database
+            const mockConversation = mockConversations[sellerId] || [];
+            loadMockMessages(mockConversation);
           }
         } catch (error) {
           console.error("Error initializing conversation:", error);
@@ -290,42 +199,6 @@ const Messages = () => {
     }
   }, [searchParams, userId]);
   
-  // Function to fetch actual messages from database
-  const fetchMessages = async (conversationId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('messages')
-        .select(`
-          id,
-          content,
-          sender_id,
-          created_at,
-          read
-        `)
-        .eq('conversation_id', conversationId)
-        .order('created_at', { ascending: true });
-        
-      if (error) {
-        console.error("Error fetching messages:", error);
-        return;
-      }
-      
-      if (data) {
-        const formattedMessages = data.map(msg => ({
-          id: msg.id,
-          sender: msg.sender_id === userId ? "user" : "seller",
-          message: msg.content,
-          time: new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-        }));
-        
-        // Load the conversation
-        setMessages(formattedMessages);
-      }
-    } catch (error) {
-      console.error("Error in fetchMessages:", error);
-    }
-  };
-  
   // Function to load mock messages until we implement the real database
   const loadMockMessages = (conversation: any[]) => {
     setMessages(conversation);
@@ -336,109 +209,16 @@ const Messages = () => {
     if (!newMessage.trim() || !selectedSeller || !userId || !isAuthenticated) return;
     
     try {
-      // Check if conversations table exists
-      const { error: tableCheckError } = await supabase
-        .from('conversations')
-        .select('id')
-        .limit(1);
-        
-      // If table doesn't exist, update UI optimistically
-      if (tableCheckError) {
-        // Add message to UI
-        const newMsg = {
-          id: Date.now().toString(),
-          sender: "user",
-          message: newMessage,
-          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-        };
-        
-        setMessages(prev => [...prev, newMsg]);
-        setNewMessage("");
-        return;
-      }
+      // Add message to UI optimistically
+      const newMsg = {
+        id: Date.now().toString(),
+        sender: "user",
+        message: newMessage,
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      };
       
-      // Get or create conversation
-      const { data: existingConversation, error: convError } = await supabase
-        .from('conversations')
-        .select('id')
-        .contains('participants', [userId, selectedSeller.id])
-        .maybeSingle();
-        
-      if (convError) {
-        console.error("Error finding conversation:", convError);
-        toast({
-          title: "Error",
-          description: "Couldn't send message. Please try again.",
-          variant: "destructive"
-        });
-        return;
-      }
-      
-      let conversationId = existingConversation?.id;
-      
-      // Create conversation if it doesn't exist
-      if (!existingConversation) {
-        const { data: newConv, error: createError } = await supabase
-          .from('conversations')
-          .insert([{
-            participants: [userId, selectedSeller.id],
-            participant_profiles: [userId, selectedSeller.id]
-          }])
-          .select();
-          
-        if (createError || !newConv) {
-          console.error("Error creating conversation:", createError);
-          toast({
-            title: "Error",
-            description: "Couldn't create conversation. Please try again.",
-            variant: "destructive"
-          });
-          return;
-        }
-        
-        conversationId = newConv[0].id;
-      }
-      
-      // Add message
-      if (conversationId) {
-        const { error: msgError } = await supabase
-          .from('messages')
-          .insert([{
-            conversation_id: conversationId,
-            sender_id: userId,
-            content: newMessage,
-            read: false
-          }]);
-          
-        if (msgError) {
-          console.error("Error sending message:", msgError);
-          toast({
-            title: "Error",
-            description: "Couldn't send message. Please try again.",
-            variant: "destructive"
-          });
-          return;
-        }
-        
-        // Update conversation last message
-        await supabase
-          .from('conversations')
-          .update({
-            last_message: newMessage,
-            last_message_time: new Date().toISOString()
-          })
-          .eq('id', conversationId);
-          
-        // Add message to UI
-        const newMsg = {
-          id: Date.now().toString(),
-          sender: "user",
-          message: newMessage,
-          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-        };
-        
-        setMessages(prev => [...prev, newMsg]);
-      }
+      setMessages(prev => [...prev, newMsg]);
+      setNewMessage("");
     } catch (error) {
       console.error("Error in handleSendMessage:", error);
       toast({
@@ -447,8 +227,6 @@ const Messages = () => {
         variant: "destructive"
       });
     }
-    
-    setNewMessage("");
   };
   
   // Handle click on a conversation
