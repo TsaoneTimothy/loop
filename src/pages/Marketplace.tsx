@@ -76,7 +76,8 @@ const Marketplace = () => {
 
         // Transform to featured items
         const items = data.map(item => {
-          const userProfile = item.profiles || {};
+          // Safely handle potentially undefined profile data
+          const userProfile = item.profiles || { id: '0', full_name: 'Anonymous', avatar_url: null };
           
           return {
             id: item.id,
@@ -89,9 +90,9 @@ const Marketplace = () => {
               ? item.images[0] 
               : 'https://images.unsplash.com/photo-1523275335684-37898b6baf30',
             seller: {
-              id: userProfile.id || '0',
-              name: userProfile.full_name || 'Anonymous',
-              avatar: userProfile.avatar_url || 'https://images.unsplash.com/photo-1568602471122-7832951cc4c5'
+              id: userProfile.id as string || '0',
+              name: userProfile.full_name as string || 'Anonymous',
+              avatar: userProfile.avatar_url as string || 'https://images.unsplash.com/photo-1568602471122-7832951cc4c5'
             },
             description: item.description
           };
@@ -116,20 +117,20 @@ const Marketplace = () => {
     fetchListings();
   }, [toast]);
 
-  // Fetch discounts for Hot Deals section
+  // Fetch discounts from discount_promotions table for Hot Deals section
   useEffect(() => {
     async function fetchDiscounts() {
       try {
         const { data, error } = await supabase
-          .from('listings')
+          .from('discount_promotions')
           .select(`
             id,
             title,
+            store,
             location,
             expires_at,
             images
           `)
-          .eq('post_type', 'discount')
           .order('created_at', { ascending: false })
           .limit(5);
 
@@ -140,9 +141,9 @@ const Marketplace = () => {
 
         if (data && data.length > 0) {
           const transformedDiscounts: Discount[] = data.map(item => ({
-            id: item.id, // Now this is a string id matching the DB
+            id: item.id,
             title: item.title,
-            store: item.location || 'Campus Store',
+            store: item.store || 'Campus Store',
             expiresIn: item.expires_at 
               ? new Date(item.expires_at) > new Date() 
                 ? `${Math.ceil((new Date(item.expires_at).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))} days` 

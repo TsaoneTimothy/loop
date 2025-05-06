@@ -40,6 +40,8 @@ const CreateListing = () => {
   const [expiryDate, setExpiryDate] = useState<Date | undefined>(undefined);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [images, setImages] = useState<string[]>([]);
+  const [storeName, setStoreName] = useState("");
+  const [newsType, setNewsType] = useState("news"); // "news" or "announcement"
   const { toast } = useToast();
   const navigate = useNavigate();
   
@@ -71,8 +73,8 @@ const CreateListing = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validate required fields based on post type
-    if (!title || !description || !selectedPostType) {
+    // Common validation
+    if (!title || !description) {
       toast({
         title: "Missing fields",
         description: "Please fill in all required fields.",
@@ -81,26 +83,6 @@ const CreateListing = () => {
       return;
     }
 
-    // Additional validation for products
-    if (selectedPostType === "product" && (!price || !location || !selectedCategory)) {
-      toast({
-        title: "Missing fields",
-        description: "Product listings require price, location, and category.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Validation for discount promotions
-    if (selectedPostType === "discount" && !expiryDate) {
-      toast({
-        title: "Missing expiry date",
-        description: "Please select when this discount expires.",
-        variant: "destructive",
-      });
-      return;
-    }
-    
     try {
       // Get current user
       const { data: { session } } = await supabase.auth.getSession();
@@ -115,60 +97,132 @@ const CreateListing = () => {
         return;
       }
       
-      // Common listing data
-      const listingData: any = {
-        title,
-        description,
-        images,
-        user_id: userId,
-        post_type: selectedPostType
-      };
-
-      // Add post type specific fields
+      // Insert data based on post type
       if (selectedPostType === "product") {
-        listingData.price = parseFloat(price);
-        listingData.location = location;
-        listingData.category = selectedCategory;
-      } else if (selectedPostType === "discount") {
-        listingData.price = price ? parseFloat(price) : null;
-        listingData.expires_at = expiryDate?.toISOString();
-        listingData.location = location || "Campus-wide";
-      } else if (selectedPostType === "news") {
-        // News posts don't require price
-        listingData.price = null;
-        listingData.location = location || "Campus";
-      }
-      
-      console.log("Creating listing with data:", listingData);
-      
-      // Save the listing to Supabase
-      const { error } = await supabase
-        .from('listings')
-        .insert(listingData);
+        // Product validation
+        if (!price || !location || !selectedCategory) {
+          toast({
+            title: "Missing fields",
+            description: "Product listings require price, location, and category.",
+            variant: "destructive",
+          });
+          return;
+        }
         
-      if (error) {
-        console.error("Error creating listing:", error);
+        // Insert into listings table
+        const { error } = await supabase
+          .from('listings')
+          .insert({
+            title,
+            description,
+            images,
+            user_id: userId,
+            post_type: 'product',
+            price: parseFloat(price),
+            location,
+            category: selectedCategory
+          });
+          
+        if (error) {
+          console.error("Error creating product listing:", error);
+          toast({
+            title: "Error creating product listing",
+            description: error.message,
+            variant: "destructive",
+          });
+          return;
+        }
+        
         toast({
-          title: "Error creating listing",
-          description: error.message,
-          variant: "destructive",
+          title: "Product listed successfully!",
+          description: "Your product has been posted to the marketplace.",
         });
-        return;
-      }
-      
-      toast({
-        title: "Post created successfully!",
-        description: `Your ${selectedPostType} has been posted.`,
-      });
-      
-      // Navigate based on post type
-      if (selectedPostType === "product") {
+        
         navigate("/marketplace");
-      } else if (selectedPostType === "news" || selectedPostType === "discount") {
+        
+      } else if (selectedPostType === "discount") {
+        // Discount validation
+        if (!expiryDate || !location) {
+          toast({
+            title: "Missing fields",
+            description: "Discount promotions require an expiry date and location.",
+            variant: "destructive",
+          });
+          return;
+        }
+        
+        // Insert into discount_promotions table
+        const { error } = await supabase
+          .from('discount_promotions')
+          .insert({
+            title,
+            description,
+            images,
+            user_id: userId,
+            price: price ? parseFloat(price) : null,
+            location,
+            store: storeName || location,
+            expires_at: expiryDate.toISOString(),
+          });
+          
+        if (error) {
+          console.error("Error creating discount promotion:", error);
+          toast({
+            title: "Error creating discount promotion",
+            description: error.message,
+            variant: "destructive",
+          });
+          return;
+        }
+        
+        toast({
+          title: "Discount promotion posted successfully!",
+          description: "Your discount has been shared with the community.",
+        });
+        
         navigate("/feed");
-      } else {
-        navigate("/marketplace");
+        
+      } else if (selectedPostType === "news") {
+        // News validation
+        if (!location) {
+          toast({
+            title: "Missing field",
+            description: "News/announcements require a location.",
+            variant: "destructive",
+          });
+          return;
+        }
+        
+        // Insert into news_announcements table
+        const { error } = await supabase
+          .from('news_announcements')
+          .insert({
+            title,
+            description,
+            images,
+            user_id: userId,
+            location,
+            news_type: newsType,
+          });
+          
+        if (error) {
+          console.error("Error creating news/announcement:", error);
+          toast({
+            title: "Error creating news/announcement",
+            description: error.message,
+            variant: "destructive",
+          });
+          return;
+        }
+        
+        toast({
+          title: "News posted successfully!",
+          description: "Your announcement has been shared with the community.",
+        });
+        
+        navigate("/feed");
       }
+      
     } catch (error: any) {
       console.error("Error:", error);
       toast({
@@ -288,6 +342,43 @@ const CreateListing = () => {
             />
           </div>
         </div>
+        
+        {/* Show store name field for discount promotions */}
+        {selectedPostType === "discount" && (
+          <div>
+            <div className="flex items-center bg-card px-4 py-3 rounded-lg">
+              <Tag className="h-5 w-5 text-muted-foreground mr-3" />
+              <Input
+                type="text"
+                placeholder="Store Name"
+                value={storeName}
+                onChange={(e) => setStoreName(e.target.value)}
+                className="border-0 bg-transparent focus-visible:ring-0 p-0"
+              />
+            </div>
+          </div>
+        )}
+        
+        {/* Show news type selector for news/announcements */}
+        {selectedPostType === "news" && (
+          <div>
+            <Label className="text-lg font-semibold">Type</Label>
+            <RadioGroup
+              value={newsType}
+              onValueChange={setNewsType}
+              className="mt-2 grid grid-cols-2 gap-2"
+            >
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="news" id="news-type" />
+                <Label htmlFor="news-type">News</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="announcement" id="announcement-type" />
+                <Label htmlFor="announcement-type">Announcement</Label>
+              </div>
+            </RadioGroup>
+          </div>
+        )}
         
         {/* Show expiry date for discount promotions */}
         {selectedPostType === "discount" && (

@@ -28,6 +28,7 @@ const FeedContent = ({ items, toggleSaved }: FeedContentProps) => {
             user={item.user}
             onToggleSaved={toggleSaved}
             link={item.link}
+            expiresAt={item.expiresAt}
           />
         ))}
       </div>
