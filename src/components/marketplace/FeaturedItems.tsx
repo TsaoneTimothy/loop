@@ -24,7 +24,10 @@ const FeaturedItems = ({ items, selectedCategory }: FeaturedItemsProps) => {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       {filteredItems.map(item => (
-        <div key={item.id} className="loop-card">
+        <div 
+          key={item.id} 
+          className={`loop-card ${item.isDiscount ? 'bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-900/40 dark:to-pink-900/30 border-2 border-purple-300 dark:border-purple-700' : ''}`}
+        >
           <Dialog>
             <DialogTrigger asChild>
               <div className="cursor-pointer">
@@ -55,12 +58,22 @@ const FeaturedItems = ({ items, selectedCategory }: FeaturedItemsProps) => {
             </DialogContent>
           </Dialog>
 
+          {item.isDiscount && (
+            <div className="absolute top-2 right-2">
+              <span className="inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white transform rotate-3 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full">
+                DISCOUNT
+              </span>
+            </div>
+          )}
+
           <h3 className="font-semibold text-lg mb-1">{item.title}</h3>
           <p className="text-muted-foreground text-sm mb-2">{item.description}</p>
           
           <div className="flex items-center justify-between">
             <div>
-              <span className="text-primary font-medium">{item.price}</span>
+              <span className={`font-medium ${item.isDiscount ? 'text-purple-600 dark:text-purple-400' : 'text-primary'}`}>
+                {item.price}
+              </span>
               <p className="text-muted-foreground text-xs">Condition: {item.condition}</p>
               <p className="text-muted-foreground text-xs">Location: {item.location}</p>
             </div>

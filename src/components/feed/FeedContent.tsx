@@ -16,7 +16,7 @@ const FeedContent = ({ items, toggleSaved }: FeedContentProps) => {
   const { isAuthenticated, userId } = useProfile();
   const [interactedItems, setInteractedItems] = useState<Record<string, boolean>>({});
 
-  const handleToggleLike = async (id: number, type: string) => {
+  const handleToggleLike = async (id: number) => {
     if (!isAuthenticated) {
       toast({
         title: "Authentication required",
@@ -27,16 +27,6 @@ const FeedContent = ({ items, toggleSaved }: FeedContentProps) => {
     }
 
     try {
-      // Determine the table name based on post type
-      let tableName = "";
-      if (type === "discount") {
-        tableName = "discount_promotions";
-      } else if (type === "news" || type === "announcement") {
-        tableName = "news_announcements";
-      } else {
-        tableName = "listings";
-      }
-
       // Check if the user has already liked this post
       const { data: existingLike } = await supabase
         .from('likes')
@@ -53,8 +43,7 @@ const FeedContent = ({ items, toggleSaved }: FeedContentProps) => {
           .eq('user_id', userId)
           .eq('listing_id', String(id));
 
-        setInteractedItems(prev => ({ ...prev, [`like-${id}`]: false }));
-        
+        // We don't need to update state as the realtime subscription will handle it
         toast({
           title: "Like removed",
           description: "You've removed your like from this post",
@@ -67,8 +56,7 @@ const FeedContent = ({ items, toggleSaved }: FeedContentProps) => {
             { user_id: userId, listing_id: String(id) }
           ]);
 
-        setInteractedItems(prev => ({ ...prev, [`like-${id}`]: true }));
-        
+        // We don't need to update state as the realtime subscription will handle it
         toast({
           title: "Post liked",
           description: "You've liked this post",
@@ -84,7 +72,7 @@ const FeedContent = ({ items, toggleSaved }: FeedContentProps) => {
     }
   };
 
-  const handleBookmark = async (id: number, type: string) => {
+  const handleBookmark = async (id: number) => {
     if (!isAuthenticated) {
       toast({
         title: "Authentication required",
@@ -111,7 +99,7 @@ const FeedContent = ({ items, toggleSaved }: FeedContentProps) => {
           .eq('user_id', userId)
           .eq('listing_id', String(id));
 
-        setInteractedItems(prev => ({ ...prev, [`bookmark-${id}`]: false }));
+        // We still need to call toggleSaved to update the parent component's state
         toggleSaved(id);
         
         toast({
@@ -126,7 +114,7 @@ const FeedContent = ({ items, toggleSaved }: FeedContentProps) => {
             { user_id: userId, listing_id: String(id) }
           ]);
 
-        setInteractedItems(prev => ({ ...prev, [`bookmark-${id}`]: true }));
+        // We still need to call toggleSaved to update the parent component's state
         toggleSaved(id);
         
         toast({
@@ -151,7 +139,7 @@ const FeedContent = ({ items, toggleSaved }: FeedContentProps) => {
         description: "Please sign in to comment",
         variant: "destructive",
       });
-      return;
+      return false;
     }
 
     try {
@@ -198,14 +186,14 @@ const FeedContent = ({ items, toggleSaved }: FeedContentProps) => {
             orientation={item.orientation}
             likes={item.likes}
             comments={item.comments}
-            saved={item.saved || interactedItems[`bookmark-${item.id}`] || false}
+            saved={item.saved}
             user={item.user}
-            onToggleSaved={() => handleBookmark(item.id, item.type)}
-            onToggleLike={() => handleToggleLike(item.id, item.type)}
+            onToggleSaved={() => handleBookmark(item.id)}
+            onToggleLike={() => handleToggleLike(item.id)}
             onAddComment={(comment) => handleAddComment(item.id, comment)}
             link={item.link}
             expiresAt={item.expiresAt}
-            liked={interactedItems[`like-${item.id}`] || false}
+            liked={item.liked}
           />
         ))}
       </div>

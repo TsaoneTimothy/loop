@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Bookmark, Heart, MessageSquare, Share2, Calendar, Store, Newspaper, Tag, Tags, Clock, Send } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -7,6 +8,7 @@ import { Link } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { useProfile } from "@/hooks/use-profile";
+import { useToast } from "@/hooks/use-toast";
 
 interface UserInfo {
   id: number;
@@ -42,7 +44,7 @@ interface PostItemProps {
   liked?: boolean;
   user: UserInfo;
   onToggleSaved: (id: number) => void;
-  onToggleLike?: (id: number) => void;
+  onToggleLike?: (id: number) => Promise<void>;
   onAddComment?: (comment: string) => Promise<boolean>;
   link?: string;
   expiresAt?: string;
@@ -74,7 +76,9 @@ const PostItem = ({
   const [likesCount, setLikesCount] = useState(initialLikes);
   const [commentsCount, setCommentsCount] = useState(initialComments);
   const [isLiked, setIsLiked] = useState(liked);
+  const [isSaved, setIsSaved] = useState(saved);
   const { profile } = useProfile();
+  const { toast } = useToast();
 
   useEffect(() => {
     if (showComments) {
@@ -85,6 +89,100 @@ const PostItem = ({
   useEffect(() => {
     setIsLiked(liked);
   }, [liked]);
+  
+  useEffect(() => {
+    setIsSaved(saved);
+  }, [saved]);
+  
+  useEffect(() => {
+    // Listen for changes to comments in real-time
+    const commentsChannel = supabase
+      .channel('public:comments')
+      .on(
+        'postgres_changes',
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: 'comments',
+          filter: `listing_id=eq.${id}`
+        },
+        (payload) => {
+          if (payload.eventType === 'INSERT') {
+            // A new comment was added
+            fetchComments();
+            setCommentsCount(prev => prev + 1);
+          } else if (payload.eventType === 'DELETE') {
+            // A comment was deleted
+            fetchComments();
+            setCommentsCount(prev => Math.max(0, prev - 1));
+          }
+        }
+      )
+      .subscribe();
+      
+    // Listen for changes to likes in real-time
+    const likesChannel = supabase
+      .channel('public:likes')
+      .on(
+        'postgres_changes',
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: 'likes',
+          filter: `listing_id=eq.${id}`
+        },
+        (payload) => {
+          if (payload.eventType === 'INSERT') {
+            // A new like was added
+            if (profile?.id === payload.new.user_id) {
+              setIsLiked(true);
+            }
+            setLikesCount(prev => prev + 1);
+          } else if (payload.eventType === 'DELETE') {
+            // A like was removed
+            if (profile?.id === payload.old.user_id) {
+              setIsLiked(false);
+            }
+            setLikesCount(prev => Math.max(0, prev - 1));
+          }
+        }
+      )
+      .subscribe();
+      
+    // Listen for changes to bookmarks in real-time
+    const bookmarksChannel = supabase
+      .channel('public:bookmarks')
+      .on(
+        'postgres_changes',
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: 'bookmarks',
+          filter: `listing_id=eq.${id}`
+        },
+        (payload) => {
+          if (payload.eventType === 'INSERT') {
+            // A new bookmark was added
+            if (profile?.id === payload.new.user_id) {
+              setIsSaved(true);
+            }
+          } else if (payload.eventType === 'DELETE') {
+            // A bookmark was removed
+            if (profile?.id === payload.old.user_id) {
+              setIsSaved(false);
+            }
+          }
+        }
+      )
+      .subscribe();
+
+    // Cleanup the subscription when component unmounts
+    return () => {
+      supabase.removeChannel(commentsChannel);
+      supabase.removeChannel(likesChannel);
+      supabase.removeChannel(bookmarksChannel);
+    };
+  }, [id, profile?.id]);
 
   const fetchComments = async () => {
     try {
@@ -123,6 +221,11 @@ const PostItem = ({
       }
     } catch (error) {
       console.error("Error fetching comments:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load comments",
+        variant: "destructive",
+      });
     }
   };
 
@@ -140,16 +243,25 @@ const PostItem = ({
     setIsSubmitting(false);
   };
 
-  const handleToggleLike = () => {
+  const handleToggleLike = async () => {
     if (onToggleLike) {
-      onToggleLike(id);
-      if (!isLiked) {
-        setLikesCount(prev => prev + 1);
-      } else {
-        setLikesCount(prev => Math.max(0, prev - 1));
+      try {
+        await onToggleLike(id);
+        // We don't need to update state here as the real-time subscription will handle it
+      } catch (error) {
+        console.error("Error toggling like:", error);
+        toast({
+          title: "Error",
+          description: "Failed to update like status",
+          variant: "destructive",
+        });
       }
-      setIsLiked(!isLiked);
     }
+  };
+  
+  const handleToggleSaved = () => {
+    onToggleSaved(id);
+    // We don't need to update state here as the real-time subscription will handle it
   };
 
   const renderTitle = () => {
@@ -168,8 +280,10 @@ const PostItem = ({
     return <h3 className="text-xl font-bold mb-2">{title}</h3>;
   };
   
+  const isDiscount = type === "discount" || type === "coupon";
+  
   return (
-    <div className="loop-card overflow-hidden">
+    <div className={`loop-card overflow-hidden ${isDiscount ? 'bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-900/40 dark:to-pink-900/30 border-2 border-purple-300 dark:border-purple-700' : ''}`}>
       {/* User Profile Header */}
       <div className="flex items-center mb-4">
         <Link to={`/profile/${user.id}`} className="flex items-center gap-3">
@@ -202,10 +316,10 @@ const PostItem = ({
             variant="ghost"
             size="icon"
             className="h-8 w-8"
-            onClick={() => onToggleSaved(id)}
+            onClick={handleToggleSaved}
           >
             <Bookmark
-              className={`h-5 w-5 ${saved ? "fill-primary text-primary" : ""}`}
+              className={`h-5 w-5 ${isSaved ? "fill-primary text-primary" : ""}`}
             />
           </Button>
         </div>
@@ -221,13 +335,11 @@ const PostItem = ({
                 ? "destructive" 
                 : type === "store" 
                   ? "default" 
-                  : type === "discount"
+                  : type === "discount" || type === "coupon"
                     ? "outline"
-                    : type === "coupon"
-                      ? "secondary"
-                      : "outline"
+                    : "outline"
           }
-          className="px-3 py-1 capitalize flex items-center gap-1"
+          className={`px-3 py-1 capitalize flex items-center gap-1 ${isDiscount ? 'bg-purple-200 text-purple-700 border-purple-300 dark:bg-purple-800/50 dark:text-purple-300 dark:border-purple-600' : ''}`}
         >
           {type === "event" && <Calendar className="h-3 w-3" />}
           {type === "announcement" && <Newspaper className="h-3 w-3" />}
@@ -245,10 +357,10 @@ const PostItem = ({
       <p className="text-muted-foreground text-sm mb-4">{description}</p>
       
       {/* Expiry date for discounts */}
-      {type === "discount" && expiresAt && (
+      {(type === "discount" || type === "coupon") && expiresAt && (
         <div className="flex items-center gap-1 mb-3 text-sm">
-          <Clock className="h-4 w-4 text-muted-foreground" />
-          <span className="text-muted-foreground">Expires: {expiresAt}</span>
+          <Clock className={`h-4 w-4 ${isDiscount ? 'text-purple-600 dark:text-purple-400' : 'text-muted-foreground'}`} />
+          <span className={`${isDiscount ? 'text-purple-600 dark:text-purple-400' : 'text-muted-foreground'}`}>Expires: {expiresAt}</span>
         </div>
       )}
       
