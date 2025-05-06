@@ -42,7 +42,7 @@ const FeedContent = ({ items, toggleSaved }: FeedContentProps) => {
         .from('likes')
         .select('*')
         .eq('user_id', userId)
-        .eq('listing_id', id)
+        .eq('listing_id', String(id))
         .single();
 
       if (existingLike) {
@@ -51,7 +51,7 @@ const FeedContent = ({ items, toggleSaved }: FeedContentProps) => {
           .from('likes')
           .delete()
           .eq('user_id', userId)
-          .eq('listing_id', id);
+          .eq('listing_id', String(id));
 
         setInteractedItems(prev => ({ ...prev, [`like-${id}`]: false }));
         
@@ -64,7 +64,7 @@ const FeedContent = ({ items, toggleSaved }: FeedContentProps) => {
         await supabase
           .from('likes')
           .insert([
-            { user_id: userId, listing_id: id }
+            { user_id: userId, listing_id: String(id) }
           ]);
 
         setInteractedItems(prev => ({ ...prev, [`like-${id}`]: true }));
@@ -100,7 +100,7 @@ const FeedContent = ({ items, toggleSaved }: FeedContentProps) => {
         .from('bookmarks')
         .select('*')
         .eq('user_id', userId)
-        .eq('listing_id', id)
+        .eq('listing_id', String(id))
         .single();
 
       if (existingBookmark) {
@@ -109,7 +109,7 @@ const FeedContent = ({ items, toggleSaved }: FeedContentProps) => {
           .from('bookmarks')
           .delete()
           .eq('user_id', userId)
-          .eq('listing_id', id);
+          .eq('listing_id', String(id));
 
         setInteractedItems(prev => ({ ...prev, [`bookmark-${id}`]: false }));
         toggleSaved(id);
@@ -123,7 +123,7 @@ const FeedContent = ({ items, toggleSaved }: FeedContentProps) => {
         await supabase
           .from('bookmarks')
           .insert([
-            { user_id: userId, listing_id: id }
+            { user_id: userId, listing_id: String(id) }
           ]);
 
         setInteractedItems(prev => ({ ...prev, [`bookmark-${id}`]: true }));
@@ -160,7 +160,7 @@ const FeedContent = ({ items, toggleSaved }: FeedContentProps) => {
         .insert([
           { 
             user_id: userId, 
-            listing_id: id,
+            listing_id: String(id),
             content: comment
           }
         ]);

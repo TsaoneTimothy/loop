@@ -8,6 +8,7 @@ import { ProfileDialogHeader } from "./ProfileDialogHeader";
 import { ProfileDialogFooter } from "./ProfileDialogFooter";
 import { useProfile } from "@/hooks/use-profile";
 import { toast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 export function ProfileDialogContent() {
   const { profile, updateProfile, loading, isAuthenticated, userId, user } = useProfile();
@@ -57,12 +58,20 @@ export function ProfileDialogContent() {
     
     try {
       console.log("Updating profile with:", { fullName, bio, avatarUrl, email });
-      await updateProfile({
+      
+      // Update profile data
+      const profileData = {
         id: userId,
         full_name: fullName || "User", // Ensure full_name is not empty
         bio,
-        email // This will be filtered out in the updateProfile function
-      });
+      };
+      
+      // If avatar URL has been updated, include it
+      if (avatarUrl !== profile?.avatar_url) {
+        profileData.avatar_url = avatarUrl;
+      }
+      
+      await updateProfile(profileData);
       
       toast({
         title: "Profile updated",
@@ -80,6 +89,7 @@ export function ProfileDialogContent() {
 
   // Handler for avatar updates
   const handleAvatarUpdate = (url: string | null) => {
+    console.log("Avatar URL updated:", url);
     setAvatarUrl(url);
   };
 

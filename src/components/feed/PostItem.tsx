@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Bookmark, Heart, MessageSquare, Share2, Calendar, Store, Newspaper, Tag, Tags, Clock, Send } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -102,7 +101,7 @@ const PostItem = ({
             avatar_url
           )
         `)
-        .eq('listing_id', id)
+        .eq('listing_id', String(id))
         .order('created_at', { ascending: false });
       
       if (error) throw error;

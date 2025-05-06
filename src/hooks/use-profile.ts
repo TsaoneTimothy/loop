@@ -106,7 +106,7 @@ export function useProfile() {
     fetchProfile();
   }, [userId, user]);
 
-  const updateProfile = async (updates: Partial<Profile> & { email?: string }) => {
+  const updateProfile = async (updates: Partial<Profile> & { email?: string; avatar_url?: string | null }) => {
     try {
       if (!userId) {
         console.error('Cannot update profile: No user ID available');
