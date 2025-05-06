@@ -19,6 +19,7 @@ export interface FeedItem {
   likes: number;
   comments: number;
   saved: boolean;
+  liked?: boolean;
   user: UserInfo;
   link?: string;
   expiresAt?: string;

@@ -32,8 +32,7 @@ const Feed = () => {
             location,
             store,
             expires_at,
-            user_id,
-            profiles:user_id (id, full_name, avatar_url)
+            user_id
           `)
           .order('created_at', { ascending: false });
 
@@ -41,34 +40,35 @@ const Feed = () => {
           console.error("Error fetching discount promotions:", discountError);
         }
 
-        // Fetch news/announcements
-        const { data: newsData, error: newsError } = await supabase
-          .from('news_announcements')
-          .select(`
-            id,
-            title,
-            description,
-            created_at,
-            images,
-            location,
-            news_type,
-            user_id,
-            profiles:user_id (id, full_name, avatar_url)
-          `)
-          .order('created_at', { ascending: false });
-
-        if (newsError) {
-          console.error("Error fetching news/announcements:", newsError);
-        }
-
-        // Combine and transform the data
-        let feedItems: FeedItem[] = [];
-
-        // Transform discount promotions to FeedItems
+        // Fetch users for discount promotions
+        let discountItems: FeedItem[] = [];
         if (discountData && discountData.length > 0) {
-          const discountItems = discountData.map(item => {
-            // Safely handle potentially undefined profile data
-            const userProfile = item.profiles || { id: '0', full_name: 'Anonymous', avatar_url: null };
+          const userIds = discountData.map(item => item.user_id);
+          
+          const { data: usersData, error: usersError } = await supabase
+            .from('profiles')
+            .select('id, full_name, avatar_url')
+            .in('id', userIds);
+            
+          if (usersError) {
+            console.error("Error fetching users:", usersError);
+          }
+          
+          // Create a map of user data for quick lookup
+          const userMap = new Map();
+          if (usersData) {
+            usersData.forEach(user => {
+              userMap.set(user.id, user);
+            });
+          }
+          
+          // Map discount promotions to feed items
+          discountItems = discountData.map(item => {
+            const userData = userMap.get(item.user_id) || { 
+              id: item.user_id, 
+              full_name: 'Anonymous', 
+              avatar_url: null 
+            };
             
             return {
               id: parseInt(item.id) || 0,
@@ -84,10 +84,10 @@ const Feed = () => {
               comments: 0,
               saved: false,
               user: {
-                id: parseInt(userProfile.id as string) || 0,
-                name: userProfile.full_name as string || 'Anonymous',
-                username: (userProfile.full_name as string || 'anonymous').toLowerCase().replace(/\s/g, ''),
-                avatar: userProfile.avatar_url as string || 'https://images.unsplash.com/photo-1568602471122-7832951cc4c5',
+                id: parseInt(userData.id) || 0,
+                name: userData.full_name || 'Anonymous',
+                username: (userData.full_name || 'anonymous').toLowerCase().replace(/\s/g, ''),
+                avatar: userData.avatar_url || 'https://images.unsplash.com/photo-1568602471122-7832951cc4c5',
                 role: 'merchant',
                 verified: false
               },
@@ -95,15 +95,56 @@ const Feed = () => {
               expiresAt: item.expires_at ? new Date(item.expires_at).toLocaleDateString() : undefined
             };
           });
-          
-          feedItems = [...feedItems, ...discountItems];
         }
-        
-        // Transform news announcements to FeedItems
+
+        // Fetch news/announcements
+        const { data: newsData, error: newsError } = await supabase
+          .from('news_announcements')
+          .select(`
+            id,
+            title,
+            description,
+            created_at,
+            images,
+            location,
+            news_type,
+            user_id
+          `)
+          .order('created_at', { ascending: false });
+
+        if (newsError) {
+          console.error("Error fetching news/announcements:", newsError);
+        }
+
+        // Fetch users for news/announcements
+        let newsItems: FeedItem[] = [];
         if (newsData && newsData.length > 0) {
-          const newsItems = newsData.map(item => {
-            // Safely handle potentially undefined profile data
-            const userProfile = item.profiles || { id: '0', full_name: 'Anonymous', avatar_url: null };
+          const userIds = newsData.map(item => item.user_id);
+          
+          const { data: usersData, error: usersError } = await supabase
+            .from('profiles')
+            .select('id, full_name, avatar_url')
+            .in('id', userIds);
+            
+          if (usersError) {
+            console.error("Error fetching users:", usersError);
+          }
+          
+          // Create a map of user data for quick lookup
+          const userMap = new Map();
+          if (usersData) {
+            usersData.forEach(user => {
+              userMap.set(user.id, user);
+            });
+          }
+          
+          // Map news/announcements to feed items
+          newsItems = newsData.map(item => {
+            const userData = userMap.get(item.user_id) || { 
+              id: item.user_id, 
+              full_name: 'Anonymous', 
+              avatar_url: null 
+            };
             
             return {
               id: parseInt(item.id) || 0,
@@ -119,18 +160,19 @@ const Feed = () => {
               comments: 0,
               saved: false,
               user: {
-                id: parseInt(userProfile.id as string) || 0,
-                name: userProfile.full_name as string || 'Anonymous',
-                username: (userProfile.full_name as string || 'anonymous').toLowerCase().replace(/\s/g, ''),
-                avatar: userProfile.avatar_url as string || 'https://images.unsplash.com/photo-1568602471122-7832951cc4c5',
+                id: parseInt(userData.id) || 0,
+                name: userData.full_name || 'Anonymous',
+                username: (userData.full_name || 'anonymous').toLowerCase().replace(/\s/g, ''),
+                avatar: userData.avatar_url || 'https://images.unsplash.com/photo-1568602471122-7832951cc4c5',
                 role: 'student',
                 verified: false
               }
             };
           });
-          
-          feedItems = [...feedItems, ...newsItems];
         }
+        
+        // Combine all items
+        let feedItems: FeedItem[] = [...discountItems, ...newsItems];
         
         // Sort all items by date (newest first)
         feedItems.sort((a, b) => {
