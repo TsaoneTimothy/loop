@@ -76,7 +76,7 @@ const Marketplace = () => {
 
         // Transform to featured items
         const items = data.map(item => {
-          // Safely handle potentially undefined profile data
+          // Get the seller profile from the joined profiles data
           const userProfile = item.profiles || { id: '0', full_name: 'Anonymous', avatar_url: null };
           
           return {
@@ -90,8 +90,8 @@ const Marketplace = () => {
               ? item.images[0] 
               : 'https://images.unsplash.com/photo-1523275335684-37898b6baf30',
             seller: {
-              id: userProfile.id as string || '0',
-              name: userProfile.full_name as string || 'Anonymous',
+              id: userProfile.id as string,
+              name: userProfile.full_name as string || 'User',
               avatar: userProfile.avatar_url as string || 'https://images.unsplash.com/photo-1568602471122-7832951cc4c5'
             },
             description: item.description
@@ -117,7 +117,7 @@ const Marketplace = () => {
     fetchListings();
   }, [toast]);
 
-  // Fetch discounts from discount_promotions table for Hot Deals section
+  // Fetch discounts
   useEffect(() => {
     async function fetchDiscounts() {
       try {

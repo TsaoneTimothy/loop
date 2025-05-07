@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { Search, ArrowDownUp } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { MessageUser, Conversation } from "@/types/messages";
+import { Conversation } from "@/types/messages";
 import ConversationItem from "./ConversationItem";
 import Logo from "@/components/shared/Logo";
 

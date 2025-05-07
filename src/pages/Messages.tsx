@@ -4,19 +4,11 @@ import { useSearchParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useProfile } from "@/hooks/use-profile";
 import { useToast } from "@/hooks/use-toast";
-import { MessageUser, Message } from "@/types/messages";
+import { MessageUser, Message, Conversation } from "@/types/messages";
 import MessageList from "@/components/messages/MessageList";
 import ChatView from "@/components/messages/ChatView";
 import AuthRequired from "@/components/messages/AuthRequired";
 import useMessageHelpers from "@/hooks/use-message-helpers";
-
-interface Conversation {
-  id: string;
-  user: MessageUser;
-  lastMessage: string;
-  time: string;
-  unread: number;
-}
 
 const Messages = () => {
   const [selectedUser, setSelectedUser] = useState<MessageUser | null>(null);
@@ -38,16 +30,10 @@ const Messages = () => {
       try {
         // Get all messages where current user is sender or receiver
         const { data: messageData, error: messageError } = await supabase
-          .rpc('fetch_user_messages', { user_id: userId })
+          .from('messages')
           .select('*')
-          .catch(() => {
-            // Fallback if the RPC doesn't exist yet - direct SQL query
-            return supabase
-              .from('messages')
-              .select('*')
-              .or(`sender_id.eq.${userId},receiver_id.eq.${userId}`)
-              .order('created_at', { ascending: false });
-          });
+          .or(`sender_id.eq.${userId},receiver_id.eq.${userId}`)
+          .order('created_at', { ascending: false });
           
         if (messageError) {
           console.error("Error fetching messages:", messageError);

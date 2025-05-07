@@ -17,9 +17,12 @@ export interface Message {
 
 export interface Conversation {
   id: string;
-  participants: string[];
-  lastMessage?: Message;
-  unreadCount: number;
+  user: MessageUser;
+  lastMessage: string;
+  time: string;
+  unread: number;
+  participants?: string[];
+  unreadCount?: number;
 }
 
 export interface ConversationWithProfiles {

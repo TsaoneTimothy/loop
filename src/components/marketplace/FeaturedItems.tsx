@@ -2,16 +2,8 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
-import { MessageSquare, ExternalLink } from "lucide-react";
+import { MessageSquare } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 import ProductDetailDialog from "./ProductDetailDialog";
 import { useProfile } from "@/hooks/use-profile";
 import { useNavigate } from "react-router-dom";
@@ -89,7 +81,7 @@ const FeaturedItems = ({ items, selectedCategory }: FeaturedItemsProps) => {
                   }}
                 >
                   <MessageSquare className="h-4 w-4 mr-1" />
-                  Message Seller
+                  Message
                 </Button>
               </div>
             </div>
