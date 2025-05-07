@@ -1,14 +1,14 @@
 import { useState, useEffect } from "react";
-import { Search, ArrowDownUp, Send, ArrowLeft } from "lucide-react";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import Logo from "@/components/shared/Logo";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useProfile } from "@/hooks/use-profile";
 import { useToast } from "@/hooks/use-toast";
 import { MessageUser, Message } from "@/types/messages";
+import MessageList from "@/components/messages/MessageList";
+import ChatView from "@/components/messages/ChatView";
+import AuthRequired from "@/components/messages/AuthRequired";
+import useMessageHelpers from "@/hooks/use-message-helpers";
 
 interface Conversation {
   id: string;
@@ -19,16 +19,15 @@ interface Conversation {
 }
 
 const Messages = () => {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [searchParams] = useSearchParams();
   const [selectedUser, setSelectedUser] = useState<MessageUser | null>(null);
-  const [newMessage, setNewMessage] = useState("");
   const [messages, setMessages] = useState<any[]>([]);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchParams] = useSearchParams();
   const { toast } = useToast();
   const { userId, profile, isAuthenticated } = useProfile();
   const navigate = useNavigate();
+  const { formatMessageTime } = useMessageHelpers();
   
   // Fetch conversations for the current user
   useEffect(() => {
@@ -38,8 +37,6 @@ const Messages = () => {
       setLoading(true);
       try {
         // Get all messages where current user is sender or receiver
-        // Note: We're using the Raw SQL query function to directly query the messages table
-        // since TypeScript doesn't know about our new table yet
         const { data: messageData, error: messageError } = await supabase
           .rpc('fetch_user_messages', { user_id: userId })
           .select('*')
@@ -140,40 +137,7 @@ const Messages = () => {
     };
     
     fetchConversations();
-  }, [userId, toast]);
-
-  // Format message time
-  const formatMessageTime = (timestamp: string) => {
-    const date = new Date(timestamp);
-    const now = new Date();
-    const diff = now.getTime() - date.getTime();
-    
-    // Less than a minute
-    if (diff < 60 * 1000) {
-      return 'just now';
-    }
-    
-    // Less than an hour
-    if (diff < 60 * 60 * 1000) {
-      const minutes = Math.floor(diff / (60 * 1000));
-      return `${minutes}m ago`;
-    }
-    
-    // Less than a day
-    if (diff < 24 * 60 * 60 * 1000) {
-      const hours = Math.floor(diff / (60 * 60 * 1000));
-      return `${hours}h ago`;
-    }
-    
-    // Less than a week
-    if (diff < 7 * 24 * 60 * 60 * 1000) {
-      const days = Math.floor(diff / (24 * 60 * 60 * 1000));
-      return `${days}d ago`;
-    }
-    
-    // Format as date
-    return date.toLocaleDateString();
-  };
+  }, [userId, toast, formatMessageTime]);
 
   // Handle seller selection from URL parameters
   useEffect(() => {
@@ -219,7 +183,6 @@ const Messages = () => {
     if (!userId) return;
     
     try {
-      // Use direct SQL query since TypeScript doesn't know about our table yet
       const { data, error } = await supabase
         .from('messages')
         .select('*')
@@ -253,9 +216,8 @@ const Messages = () => {
     }
   };
 
-  const handleSendMessage = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newMessage.trim() || !selectedUser || !userId || !isAuthenticated) return;
+  const handleSendMessage = async (newMessage: string) => {
+    if (!selectedUser || !userId || !isAuthenticated) return;
     
     try {
       const newMsg = {
@@ -279,8 +241,6 @@ const Messages = () => {
         // Add message to UI
         setMessages(prev => [...prev, data[0]]);
       }
-      
-      setNewMessage("");
     } catch (error) {
       console.error("Error in handleSendMessage:", error);
       toast({
@@ -383,157 +343,31 @@ const Messages = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [userId, selectedUser]);
-
-  const filteredConversations = conversations.filter(
-    (conversation) =>
-      conversation.user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      conversation.lastMessage.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  }, [userId, selectedUser, formatMessageTime]);
 
   if (!isAuthenticated) {
-    return (
-      <div className="flex flex-col items-center justify-center h-[70vh]">
-        <h2 className="text-xl font-semibold mb-2">Authentication Required</h2>
-        <p className="text-muted-foreground mb-4">Please sign in to access messages</p>
-        <Button onClick={() => navigate("/login")}>Sign In</Button>
-      </div>
-    );
+    return <AuthRequired />;
   }
 
   if (selectedUser) {
     return (
-      <div className="pb-20 flex flex-col h-screen">
-        <header className="loop-header flex items-center justify-between p-4 border-b">
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" size="sm" className="mr-1" onClick={goBackToList}>
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-            <Avatar className="h-10 w-10">
-              <AvatarImage src={selectedUser.avatar} alt={selectedUser.name} />
-              <AvatarFallback>{selectedUser.name.charAt(0)}</AvatarFallback>
-            </Avatar>
-            <h2 className="font-semibold">{selectedUser.name}</h2>
-          </div>
-        </header>
-
-        <div className="flex-1 overflow-auto p-4 space-y-4">
-          {messages.length === 0 ? (
-            <div className="flex justify-center items-center h-full">
-              <p className="text-muted-foreground">No messages yet. Start the conversation!</p>
-            </div>
-          ) : (
-            messages.map((msg) => (
-              <div
-                key={msg.id}
-                className={`flex ${msg.sender_id === userId ? "justify-end" : "justify-start"}`}
-              >
-                <div
-                  className={`max-w-[80%] rounded-lg p-3 ${
-                    msg.sender_id === userId
-                      ? "bg-primary text-primary-foreground ml-12"
-                      : "bg-muted mr-12"
-                  }`}
-                >
-                  <p>{msg.content}</p>
-                  <span className="text-xs opacity-70 mt-1 block">
-                    {formatMessageTime(msg.created_at)}
-                  </span>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-
-        <form 
-          onSubmit={handleSendMessage}
-          className="border-t p-4 flex gap-2"
-        >
-          <Input
-            placeholder="Type a message..."
-            value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
-            className="flex-1"
-          />
-          <Button type="submit" size="icon" disabled={!newMessage.trim()}>
-            <Send className="h-4 w-4" />
-          </Button>
-        </form>
-      </div>
+      <ChatView
+        user={selectedUser}
+        messages={messages}
+        currentUserId={userId || ""}
+        onBack={goBackToList}
+        onSendMessage={handleSendMessage}
+        formatMessageTime={formatMessageTime}
+      />
     );
   }
 
   return (
-    <div className="pb-20">
-      <header className="loop-header flex items-center justify-between">
-        <Logo />
-        <Button variant="ghost" size="icon" className="rounded-full">
-          <ArrowDownUp className="h-6 w-6" />
-        </Button>
-      </header>
-      
-      <div className="px-6 py-3">
-        <div className="loop-search">
-          <Search className="h-5 w-5 text-muted-foreground" />
-          <Input 
-            type="text" 
-            placeholder="Search messages..." 
-            className="border-0 bg-transparent focus-visible:ring-0 pl-0"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-        </div>
-      </div>
-      
-      <div className="mt-4 px-6">
-        {loading ? (
-          <div className="flex justify-center py-12">
-            <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
-          </div>
-        ) : filteredConversations.length === 0 ? (
-          <div className="text-center py-12">
-            <p className="text-muted-foreground">No conversations yet</p>
-            <p className="text-sm text-muted-foreground mt-2">
-              Start messaging sellers through the marketplace
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-1">
-            {filteredConversations.map((conversation) => (
-              <div 
-                key={conversation.id} 
-                className="flex items-center gap-4 p-3 hover:bg-card rounded-lg cursor-pointer"
-                onClick={() => handleConversationClick(conversation)}
-              >
-                <div className="relative">
-                  <Avatar>
-                    <AvatarImage src={conversation.user.avatar} alt={conversation.user.name} />
-                    <AvatarFallback>{conversation.user.name.charAt(0)}</AvatarFallback>
-                  </Avatar>
-                  {conversation.user.online && (
-                    <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-green-500 border-2 border-background"></span>
-                  )}
-                </div>
-                
-                <div className="flex-1 min-w-0">
-                  <div className="flex justify-between items-baseline">
-                    <h3 className="font-semibold truncate">{conversation.user.name}</h3>
-                    <span className="text-xs text-muted-foreground whitespace-nowrap ml-2">{conversation.time}</span>
-                  </div>
-                  <p className="text-sm text-muted-foreground truncate">{conversation.lastMessage}</p>
-                </div>
-                
-                {conversation.unread > 0 && (
-                  <div className="flex justify-center items-center bg-primary text-primary-foreground rounded-full h-6 w-6 text-xs font-semibold">
-                    {conversation.unread}
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
+    <MessageList 
+      conversations={conversations}
+      loading={loading}
+      onSelectConversation={handleConversationClick}
+    />
   );
 };
 
