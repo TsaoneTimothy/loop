@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Search, ArrowDownUp, Send, ArrowLeft } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -9,23 +8,7 @@ import { useSearchParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useProfile } from "@/hooks/use-profile";
 import { useToast } from "@/hooks/use-toast";
-
-interface MessageUser {
-  id: string;
-  name: string;
-  avatar: string;
-  online?: boolean;
-}
-
-interface Message {
-  id: string;
-  sender_id: string;
-  receiver_id: string;
-  content: string;
-  created_at: string;
-  sender?: MessageUser;
-  receiver?: MessageUser;
-}
+import { MessageUser, Message } from "@/types/messages";
 
 interface Conversation {
   id: string;
@@ -40,7 +23,7 @@ const Messages = () => {
   const [searchParams] = useSearchParams();
   const [selectedUser, setSelectedUser] = useState<MessageUser | null>(null);
   const [newMessage, setNewMessage] = useState("");
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<any[]>([]);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
@@ -54,29 +37,42 @@ const Messages = () => {
     const fetchConversations = async () => {
       setLoading(true);
       try {
-        // We'll need to implement a more comprehensive solution in the future
-        // For now, we'll fetch users with whom the current user has messaged
-        const { data: sentMessages, error: sentError } = await supabase
-          .from('messages')
-          .select('receiver_id, content, created_at')
-          .eq('sender_id', userId)
-          .order('created_at', { ascending: false });
+        // Get all messages where current user is sender or receiver
+        // Note: We're using the Raw SQL query function to directly query the messages table
+        // since TypeScript doesn't know about our new table yet
+        const { data: messageData, error: messageError } = await supabase
+          .rpc('fetch_user_messages', { user_id: userId })
+          .select('*')
+          .catch(() => {
+            // Fallback if the RPC doesn't exist yet - direct SQL query
+            return supabase
+              .from('messages')
+              .select('*')
+              .or(`sender_id.eq.${userId},receiver_id.eq.${userId}`)
+              .order('created_at', { ascending: false });
+          });
           
-        const { data: receivedMessages, error: receivedError } = await supabase
-          .from('messages')
-          .select('sender_id, content, created_at')
-          .eq('receiver_id', userId)
-          .order('created_at', { ascending: false });
-          
-        if (sentError || receivedError) {
-          console.error("Error fetching messages:", sentError || receivedError);
+        if (messageError) {
+          console.error("Error fetching messages:", messageError);
+          return;
+        }
+        
+        if (!messageData || messageData.length === 0) {
+          setConversations([]);
+          setLoading(false);
           return;
         }
         
         // Get unique user IDs from both sent and received messages
         const uniqueUserIds = new Set<string>();
-        sentMessages?.forEach(msg => uniqueUserIds.add(msg.receiver_id));
-        receivedMessages?.forEach(msg => uniqueUserIds.add(msg.sender_id));
+        messageData.forEach((msg: any) => {
+          // Add the other user to the set (not the current user)
+          if (msg.sender_id === userId) {
+            uniqueUserIds.add(msg.receiver_id);
+          } else {
+            uniqueUserIds.add(msg.sender_id);
+          }
+        });
         
         const userIds = Array.from(uniqueUserIds);
         
@@ -99,32 +95,22 @@ const Messages = () => {
         
         // Create conversation objects
         const conversationsData: Conversation[] = profiles?.map(profile => {
-          // Find the latest message from sent or received
-          const latestSent = sentMessages?.find(msg => msg.receiver_id === profile.id);
-          const latestReceived = receivedMessages?.find(msg => msg.sender_id === profile.id);
+          // Find the latest message from sent or received where the other user is this profile
+          const latestMessage = messageData
+            .filter((msg: any) => 
+              (msg.sender_id === profile.id && msg.receiver_id === userId) || 
+              (msg.sender_id === userId && msg.receiver_id === profile.id)
+            )
+            .sort((a: any, b: any) => 
+              new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+            )[0];
           
-          // Determine which message is more recent
-          let latestMessage;
-          let time;
-          
-          if (latestSent && latestReceived) {
-            if (new Date(latestSent.created_at) > new Date(latestReceived.created_at)) {
-              latestMessage = latestSent.content;
-              time = formatMessageTime(latestSent.created_at);
-            } else {
-              latestMessage = latestReceived.content;
-              time = formatMessageTime(latestReceived.created_at);
-            }
-          } else if (latestSent) {
-            latestMessage = latestSent.content;
-            time = formatMessageTime(latestSent.created_at);
-          } else if (latestReceived) {
-            latestMessage = latestReceived.content;
-            time = formatMessageTime(latestReceived.created_at);
-          } else {
-            latestMessage = "No messages yet";
-            time = "Just now";
-          }
+          // Count unread messages
+          const unreadCount = messageData.filter((msg: any) => 
+            msg.sender_id === profile.id && 
+            msg.receiver_id === userId && 
+            !msg.read
+          ).length;
           
           return {
             id: profile.id,
@@ -134,9 +120,9 @@ const Messages = () => {
               avatar: profile.avatar_url || 'https://images.unsplash.com/photo-1599566150163-29194dcaad36',
               online: Math.random() > 0.5 // Random online status for now
             },
-            lastMessage: latestMessage,
-            time,
-            unread: Math.floor(Math.random() * 3) // Random unread count for now
+            lastMessage: latestMessage?.content || "No messages yet",
+            time: latestMessage ? formatMessageTime(latestMessage.created_at) : "Just now",
+            unread: unreadCount
           };
         }) || [];
         
@@ -233,34 +219,35 @@ const Messages = () => {
     if (!userId) return;
     
     try {
-      // Get messages where current user is sender and partner is receiver
-      const { data: sentMessages, error: sentError } = await supabase
+      // Use direct SQL query since TypeScript doesn't know about our table yet
+      const { data, error } = await supabase
         .from('messages')
-        .select('id, sender_id, receiver_id, content, created_at')
-        .eq('sender_id', userId)
-        .eq('receiver_id', partnerId)
+        .select('*')
+        .or(`and(sender_id.eq.${userId},receiver_id.eq.${partnerId}),and(sender_id.eq.${partnerId},receiver_id.eq.${userId})`)
         .order('created_at', { ascending: true });
-        
-      // Get messages where partner is sender and current user is receiver
-      const { data: receivedMessages, error: receivedError } = await supabase
-        .from('messages')
-        .select('id, sender_id, receiver_id, content, created_at')
-        .eq('sender_id', partnerId)
-        .eq('receiver_id', userId)
-        .order('created_at', { ascending: true });
-        
-      if (sentError || receivedError) {
-        console.error("Error fetching messages:", sentError || receivedError);
+      
+      if (error) {
+        console.error("Error fetching messages:", error);
         return;
       }
       
-      // Combine and sort messages
-      const allMessages = [...(sentMessages || []), ...(receivedMessages || [])];
-      allMessages.sort((a, b) => 
-        new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-      );
+      // Mark received messages as read
+      const unreadMessages = data?.filter(msg => 
+        msg.sender_id === partnerId && 
+        msg.receiver_id === userId && 
+        !msg.read
+      ) || [];
       
-      setMessages(allMessages);
+      if (unreadMessages.length > 0) {
+        unreadMessages.forEach(async (msg) => {
+          await supabase
+            .from('messages')
+            .update({ read: true })
+            .eq('id', msg.id);
+        });
+      }
+      
+      setMessages(data || []);
     } catch (error) {
       console.error("Error loading messages:", error);
     }
@@ -274,7 +261,8 @@ const Messages = () => {
       const newMsg = {
         sender_id: userId,
         receiver_id: selectedUser.id,
-        content: newMessage
+        content: newMessage,
+        read: false
       };
       
       // Insert message into database
@@ -312,6 +300,90 @@ const Messages = () => {
   const goBackToList = () => {
     setSelectedUser(null);
   };
+
+  // Set up realtime subscription for new messages
+  useEffect(() => {
+    if (!userId) return;
+  
+    const channel = supabase
+      .channel('messages_channel')
+      .on('postgres_changes', { 
+        event: '*', 
+        schema: 'public', 
+        table: 'messages',
+        filter: `receiver_id=eq.${userId}` 
+      }, (payload) => {
+        // Handle new message received
+        if (payload.eventType === 'INSERT') {
+          const newMessage = payload.new;
+          
+          // If this message is relevant to the current conversation
+          if (selectedUser && newMessage.sender_id === selectedUser.id) {
+            setMessages(prev => [...prev, newMessage]);
+            
+            // Mark as read since we're actively viewing this conversation
+            supabase
+              .from('messages')
+              .update({ read: true })
+              .eq('id', newMessage.id);
+          } 
+          
+          // Update conversations list
+          setConversations(prev => {
+            // Find if this sender is already in our conversations
+            const existingConvIndex = prev.findIndex(conv => 
+              conv.user.id === newMessage.sender_id
+            );
+            
+            // If yes, update the last message
+            if (existingConvIndex >= 0) {
+              const updatedConv = [...prev];
+              updatedConv[existingConvIndex] = {
+                ...updatedConv[existingConvIndex],
+                lastMessage: newMessage.content,
+                time: formatMessageTime(newMessage.created_at),
+                unread: updatedConv[existingConvIndex].unread + 
+                  (newMessage.sender_id !== selectedUser?.id ? 1 : 0)
+              };
+              return updatedConv;
+            }
+            
+            // Otherwise, we'll need to fetch this sender's profile
+            supabase
+              .from('profiles')
+              .select('id, full_name, avatar_url')
+              .eq('id', newMessage.sender_id)
+              .single()
+              .then(({ data }) => {
+                if (data) {
+                  setConversations(currConvs => [
+                    {
+                      id: data.id,
+                      user: {
+                        id: data.id,
+                        name: data.full_name || 'User',
+                        avatar: data.avatar_url || 'https://images.unsplash.com/photo-1599566150163-29194dcaad36',
+                        online: true
+                      },
+                      lastMessage: newMessage.content,
+                      time: formatMessageTime(newMessage.created_at),
+                      unread: 1
+                    },
+                    ...currConvs
+                  ]);
+                }
+              });
+            
+            return prev;
+          });
+        }
+      })
+      .subscribe();
+      
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [userId, selectedUser]);
 
   const filteredConversations = conversations.filter(
     (conversation) =>
