@@ -1,138 +1,47 @@
+
 import { useState, useEffect } from "react";
 import { Search, ArrowDownUp, Send, ArrowLeft } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Avatar } from "@/components/ui/avatar";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import Logo from "@/components/shared/Logo";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useProfile } from "@/hooks/use-profile";
 import { useToast } from "@/hooks/use-toast";
-import { Message, MessageUser, ConversationWithProfiles } from "@/types/messages";
 
-// Mock data for messages
-const mockMessages = [
-  {
-    id: 1,
-    sellerId: "1",
-    name: "Keith Mompati",
-    message: "Sure! It's the M2 chip, 16GB RAM, 512GB SSD.",
-    time: "2m ago",
-    avatar: "https://images.unsplash.com/photo-1599566150163-29194dcaad36",
-    online: true,
-    unread: 2
-  },
-  {
-    id: 2,
-    sellerId: "2",
-    name: "Jane Smith",
-    message: "The textbook is in perfect condition!",
-    time: "1h ago",
-    avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330",
-    online: true,
-    unread: 0
-  },
-  {
-    id: 3,
-    sellerId: "3",
-    name: "Alex Johnson",
-    message: "Yes, the lamp comes with LED bulbs.",
-    time: "3h ago",
-    avatar: "https://images.unsplash.com/photo-1633332755192-727a05c4013d",
-    online: false,
-    unread: 1
-  }
-];
+interface MessageUser {
+  id: string;
+  name: string;
+  avatar: string;
+  online?: boolean;
+}
 
-// Mock conversations for each seller
-const mockConversations: Record<string | number, Array<{ id: number; sender: "user" | "seller"; message: string; time: string }>> = {
-  "1": [
-    {
-      id: 1,
-      sender: "user",
-      message: "Hi, I'm interested in the MacBook Pro. Is it still available?",
-      time: "2:30 PM"
-    },
-    {
-      id: 2,
-      sender: "seller",
-      message: "Yes, it's still available! It's in great condition, only used for 3 months.",
-      time: "2:32 PM"
-    },
-    {
-      id: 3,
-      sender: "user",
-      message: "Great! Could you tell me more about the specs?",
-      time: "2:33 PM"
-    },
-    {
-      id: 4,
-      sender: "seller",
-      message: "Sure! It's the M2 chip, 16GB RAM, 512GB SSD. Battery cycle count is only 56.",
-      time: "2:35 PM"
-    }
-  ],
-  "2": [
-    {
-      id: 1,
-      sender: "user",
-      message: "Hello! Is the Calculus textbook still for sale?",
-      time: "1:20 PM"
-    },
-    {
-      id: 2,
-      sender: "seller",
-      message: "Yes, it is! Are you interested in buying it?",
-      time: "1:25 PM"
-    },
-    {
-      id: 3,
-      sender: "user",
-      message: "What's the condition of the book? Any highlights or notes?",
-      time: "1:26 PM"
-    },
-    {
-      id: 4,
-      sender: "seller",
-      message: "The textbook is in perfect condition! No highlights or notes.",
-      time: "1:30 PM"
-    }
-  ],
-  "3": [
-    {
-      id: 1,
-      sender: "user",
-      message: "Hi! I saw your desk lamp listing. Does it come with bulbs?",
-      time: "11:20 AM"
-    },
-    {
-      id: 2,
-      sender: "seller",
-      message: "Hello! Yes, it comes with LED bulbs included.",
-      time: "11:25 AM"
-    },
-    {
-      id: 3,
-      sender: "user",
-      message: "Great! What's the wattage of the bulbs?",
-      time: "11:26 AM"
-    },
-    {
-      id: 4,
-      sender: "seller",
-      message: "They're 9W LED bulbs, equivalent to about 60W traditional bulbs.",
-      time: "11:30 AM"
-    }
-  ]
-};
+interface Message {
+  id: string;
+  sender_id: string;
+  receiver_id: string;
+  content: string;
+  created_at: string;
+  sender?: MessageUser;
+  receiver?: MessageUser;
+}
+
+interface Conversation {
+  id: string;
+  user: MessageUser;
+  lastMessage: string;
+  time: string;
+  unread: number;
+}
 
 const Messages = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchParams] = useSearchParams();
-  const [selectedSeller, setSelectedSeller] = useState<{id: string; name: string; avatar: string} | null>(null);
+  const [selectedUser, setSelectedUser] = useState<MessageUser | null>(null);
   const [newMessage, setNewMessage] = useState("");
-  const [messages, setMessages] = useState<any[]>([]);
-  const [conversations, setConversations] = useState<any[]>([]);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
   const { userId, profile, isAuthenticated } = useProfile();
@@ -145,79 +54,244 @@ const Messages = () => {
     const fetchConversations = async () => {
       setLoading(true);
       try {
-        console.log("Using mock conversation data");
-        setConversations(mockMessages);
-        setLoading(false);
+        // We'll need to implement a more comprehensive solution in the future
+        // For now, we'll fetch users with whom the current user has messaged
+        const { data: sentMessages, error: sentError } = await supabase
+          .from('messages')
+          .select('receiver_id, content, created_at')
+          .eq('sender_id', userId)
+          .order('created_at', { ascending: false });
+          
+        const { data: receivedMessages, error: receivedError } = await supabase
+          .from('messages')
+          .select('sender_id, content, created_at')
+          .eq('receiver_id', userId)
+          .order('created_at', { ascending: false });
+          
+        if (sentError || receivedError) {
+          console.error("Error fetching messages:", sentError || receivedError);
+          return;
+        }
+        
+        // Get unique user IDs from both sent and received messages
+        const uniqueUserIds = new Set<string>();
+        sentMessages?.forEach(msg => uniqueUserIds.add(msg.receiver_id));
+        receivedMessages?.forEach(msg => uniqueUserIds.add(msg.sender_id));
+        
+        const userIds = Array.from(uniqueUserIds);
+        
+        if (userIds.length === 0) {
+          setConversations([]);
+          setLoading(false);
+          return;
+        }
+        
+        // Fetch user profiles
+        const { data: profiles, error: profilesError } = await supabase
+          .from('profiles')
+          .select('id, full_name, avatar_url')
+          .in('id', userIds);
+          
+        if (profilesError) {
+          console.error("Error fetching profiles:", profilesError);
+          return;
+        }
+        
+        // Create conversation objects
+        const conversationsData: Conversation[] = profiles?.map(profile => {
+          // Find the latest message from sent or received
+          const latestSent = sentMessages?.find(msg => msg.receiver_id === profile.id);
+          const latestReceived = receivedMessages?.find(msg => msg.sender_id === profile.id);
+          
+          // Determine which message is more recent
+          let latestMessage;
+          let time;
+          
+          if (latestSent && latestReceived) {
+            if (new Date(latestSent.created_at) > new Date(latestReceived.created_at)) {
+              latestMessage = latestSent.content;
+              time = formatMessageTime(latestSent.created_at);
+            } else {
+              latestMessage = latestReceived.content;
+              time = formatMessageTime(latestReceived.created_at);
+            }
+          } else if (latestSent) {
+            latestMessage = latestSent.content;
+            time = formatMessageTime(latestSent.created_at);
+          } else if (latestReceived) {
+            latestMessage = latestReceived.content;
+            time = formatMessageTime(latestReceived.created_at);
+          } else {
+            latestMessage = "No messages yet";
+            time = "Just now";
+          }
+          
+          return {
+            id: profile.id,
+            user: {
+              id: profile.id,
+              name: profile.full_name || 'User',
+              avatar: profile.avatar_url || 'https://images.unsplash.com/photo-1599566150163-29194dcaad36',
+              online: Math.random() > 0.5 // Random online status for now
+            },
+            lastMessage: latestMessage,
+            time,
+            unread: Math.floor(Math.random() * 3) // Random unread count for now
+          };
+        }) || [];
+        
+        setConversations(conversationsData);
       } catch (error) {
         console.error("Error in fetchConversations:", error);
-        setConversations(mockMessages);
+        toast({
+          title: "Error loading conversations",
+          description: "Could not load your conversations. Please try again.",
+          variant: "destructive"
+        });
       } finally {
         setLoading(false);
       }
     };
     
     fetchConversations();
-  }, [userId]);
+  }, [userId, toast]);
+
+  // Format message time
+  const formatMessageTime = (timestamp: string) => {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diff = now.getTime() - date.getTime();
+    
+    // Less than a minute
+    if (diff < 60 * 1000) {
+      return 'just now';
+    }
+    
+    // Less than an hour
+    if (diff < 60 * 60 * 1000) {
+      const minutes = Math.floor(diff / (60 * 1000));
+      return `${minutes}m ago`;
+    }
+    
+    // Less than a day
+    if (diff < 24 * 60 * 60 * 1000) {
+      const hours = Math.floor(diff / (60 * 60 * 1000));
+      return `${hours}h ago`;
+    }
+    
+    // Less than a week
+    if (diff < 7 * 24 * 60 * 60 * 1000) {
+      const days = Math.floor(diff / (24 * 60 * 60 * 1000));
+      return `${days}d ago`;
+    }
+    
+    // Format as date
+    return date.toLocaleDateString();
+  };
 
   // Handle seller selection from URL parameters
   useEffect(() => {
     const initializeConversation = async () => {
       const sellerId = searchParams.get("seller");
-      if (sellerId) {
-        try {
-          // Fetch seller profile
-          const { data: sellerProfile, error } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', sellerId)
-            .single();
-            
-          if (error) {
-            console.error("Error fetching seller profile:", error);
-            return;
-          }
-            
-          if (sellerProfile) {
-            setSelectedSeller({
-              id: sellerProfile.id,
-              name: sellerProfile.full_name || 'Seller',
-              avatar: sellerProfile.avatar_url || 'https://images.unsplash.com/photo-1599566150163-29194dcaad36'
-            });
-            
-            // Use mock conversation data until we implement a real database
-            const mockConversation = mockConversations[sellerId] || [];
-            loadMockMessages(mockConversation);
-          }
-        } catch (error) {
-          console.error("Error initializing conversation:", error);
+      if (!sellerId || !userId) return;
+      
+      try {
+        // Fetch seller profile
+        const { data: sellerProfile, error } = await supabase
+          .from('profiles')
+          .select('id, full_name, avatar_url')
+          .eq('id', sellerId)
+          .single();
+          
+        if (error) {
+          console.error("Error fetching seller profile:", error);
+          return;
         }
+          
+        if (sellerProfile) {
+          setSelectedUser({
+            id: sellerProfile.id,
+            name: sellerProfile.full_name || 'User',
+            avatar: sellerProfile.avatar_url || 'https://images.unsplash.com/photo-1599566150163-29194dcaad36'
+          });
+          
+          // Load existing messages
+          loadMessages(sellerId);
+        }
+      } catch (error) {
+        console.error("Error initializing conversation:", error);
       }
     };
     
-    if (userId) {
+    if (userId && isAuthenticated) {
       initializeConversation();
     }
-  }, [searchParams, userId]);
+  }, [searchParams, userId, isAuthenticated]);
   
-  // Function to load mock messages until we implement the real database
-  const loadMockMessages = (conversation: any[]) => {
-    setMessages(conversation);
+  // Load messages between current user and selected user
+  const loadMessages = async (partnerId: string) => {
+    if (!userId) return;
+    
+    try {
+      // Get messages where current user is sender and partner is receiver
+      const { data: sentMessages, error: sentError } = await supabase
+        .from('messages')
+        .select('id, sender_id, receiver_id, content, created_at')
+        .eq('sender_id', userId)
+        .eq('receiver_id', partnerId)
+        .order('created_at', { ascending: true });
+        
+      // Get messages where partner is sender and current user is receiver
+      const { data: receivedMessages, error: receivedError } = await supabase
+        .from('messages')
+        .select('id, sender_id, receiver_id, content, created_at')
+        .eq('sender_id', partnerId)
+        .eq('receiver_id', userId)
+        .order('created_at', { ascending: true });
+        
+      if (sentError || receivedError) {
+        console.error("Error fetching messages:", sentError || receivedError);
+        return;
+      }
+      
+      // Combine and sort messages
+      const allMessages = [...(sentMessages || []), ...(receivedMessages || [])];
+      allMessages.sort((a, b) => 
+        new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+      );
+      
+      setMessages(allMessages);
+    } catch (error) {
+      console.error("Error loading messages:", error);
+    }
   };
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newMessage.trim() || !selectedSeller || !userId || !isAuthenticated) return;
+    if (!newMessage.trim() || !selectedUser || !userId || !isAuthenticated) return;
     
     try {
-      // Add message to UI optimistically
       const newMsg = {
-        id: Date.now().toString(),
-        sender: "user",
-        message: newMessage,
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        sender_id: userId,
+        receiver_id: selectedUser.id,
+        content: newMessage
       };
       
-      setMessages(prev => [...prev, newMsg]);
+      // Insert message into database
+      const { data, error } = await supabase
+        .from('messages')
+        .insert(newMsg)
+        .select();
+        
+      if (error) {
+        throw error;
+      }
+      
+      if (data && data.length > 0) {
+        // Add message to UI
+        setMessages(prev => [...prev, data[0]]);
+      }
+      
       setNewMessage("");
     } catch (error) {
       console.error("Error in handleSendMessage:", error);
@@ -230,29 +304,19 @@ const Messages = () => {
   };
   
   // Handle click on a conversation
-  const handleConversationClick = (sellerId: number | string) => {
-    const seller = conversations.find(m => m.sellerId === sellerId);
-    if (seller) {
-      setSelectedSeller({
-        id: String(seller.sellerId),
-        name: seller.name,
-        avatar: seller.avatar
-      });
-      
-      // Load conversation
-      const conversationData = mockConversations[sellerId] || [];
-      loadMockMessages(conversationData);
-    }
+  const handleConversationClick = (conversation: Conversation) => {
+    setSelectedUser(conversation.user);
+    loadMessages(conversation.user.id);
   };
   
   const goBackToList = () => {
-    setSelectedSeller(null);
+    setSelectedUser(null);
   };
 
   const filteredConversations = conversations.filter(
     (conversation) =>
-      conversation.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      conversation.message.toLowerCase().includes(searchQuery.toLowerCase())
+      conversation.user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      conversation.lastMessage.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   if (!isAuthenticated) {
@@ -265,7 +329,7 @@ const Messages = () => {
     );
   }
 
-  if (selectedSeller) {
+  if (selectedUser) {
     return (
       <div className="pb-20 flex flex-col h-screen">
         <header className="loop-header flex items-center justify-between p-4 border-b">
@@ -274,30 +338,39 @@ const Messages = () => {
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <Avatar className="h-10 w-10">
-              <img src={selectedSeller.avatar} alt={selectedSeller.name} />
+              <AvatarImage src={selectedUser.avatar} alt={selectedUser.name} />
+              <AvatarFallback>{selectedUser.name.charAt(0)}</AvatarFallback>
             </Avatar>
-            <h2 className="font-semibold">{selectedSeller.name}</h2>
+            <h2 className="font-semibold">{selectedUser.name}</h2>
           </div>
         </header>
 
         <div className="flex-1 overflow-auto p-4 space-y-4">
-          {messages.map((msg, index) => (
-            <div
-              key={msg.id || index}
-              className={`flex ${msg.sender === "user" ? "justify-end" : "justify-start"}`}
-            >
-              <div
-                className={`max-w-[80%] rounded-lg p-3 ${
-                  msg.sender === "user"
-                    ? "bg-primary text-primary-foreground ml-12"
-                    : "bg-muted mr-12"
-                }`}
-              >
-                <p>{msg.message}</p>
-                <span className="text-xs opacity-70 mt-1 block">{msg.time}</span>
-              </div>
+          {messages.length === 0 ? (
+            <div className="flex justify-center items-center h-full">
+              <p className="text-muted-foreground">No messages yet. Start the conversation!</p>
             </div>
-          ))}
+          ) : (
+            messages.map((msg) => (
+              <div
+                key={msg.id}
+                className={`flex ${msg.sender_id === userId ? "justify-end" : "justify-start"}`}
+              >
+                <div
+                  className={`max-w-[80%] rounded-lg p-3 ${
+                    msg.sender_id === userId
+                      ? "bg-primary text-primary-foreground ml-12"
+                      : "bg-muted mr-12"
+                  }`}
+                >
+                  <p>{msg.content}</p>
+                  <span className="text-xs opacity-70 mt-1 block">
+                    {formatMessageTime(msg.created_at)}
+                  </span>
+                </div>
+              </div>
+            ))
+          )}
         </div>
 
         <form 
@@ -347,36 +420,40 @@ const Messages = () => {
           </div>
         ) : filteredConversations.length === 0 ? (
           <div className="text-center py-12">
-            <p className="text-muted-foreground">No messages found</p>
+            <p className="text-muted-foreground">No conversations yet</p>
+            <p className="text-sm text-muted-foreground mt-2">
+              Start messaging sellers through the marketplace
+            </p>
           </div>
         ) : (
           <div className="space-y-1">
-            {filteredConversations.map((message) => (
+            {filteredConversations.map((conversation) => (
               <div 
-                key={message.id} 
+                key={conversation.id} 
                 className="flex items-center gap-4 p-3 hover:bg-card rounded-lg cursor-pointer"
-                onClick={() => handleConversationClick(message.sellerId)}
+                onClick={() => handleConversationClick(conversation)}
               >
                 <div className="relative">
                   <Avatar>
-                    <img src={message.avatar} alt={message.name} />
+                    <AvatarImage src={conversation.user.avatar} alt={conversation.user.name} />
+                    <AvatarFallback>{conversation.user.name.charAt(0)}</AvatarFallback>
                   </Avatar>
-                  {message.online && (
+                  {conversation.user.online && (
                     <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-green-500 border-2 border-background"></span>
                   )}
                 </div>
                 
                 <div className="flex-1 min-w-0">
                   <div className="flex justify-between items-baseline">
-                    <h3 className="font-semibold truncate">{message.name}</h3>
-                    <span className="text-xs text-muted-foreground whitespace-nowrap ml-2">{message.time}</span>
+                    <h3 className="font-semibold truncate">{conversation.user.name}</h3>
+                    <span className="text-xs text-muted-foreground whitespace-nowrap ml-2">{conversation.time}</span>
                   </div>
-                  <p className="text-sm text-muted-foreground truncate">{message.message}</p>
+                  <p className="text-sm text-muted-foreground truncate">{conversation.lastMessage}</p>
                 </div>
                 
-                {message.unread > 0 && (
+                {conversation.unread > 0 && (
                   <div className="flex justify-center items-center bg-primary text-primary-foreground rounded-full h-6 w-6 text-xs font-semibold">
-                    {message.unread}
+                    {conversation.unread}
                   </div>
                 )}
               </div>

@@ -10,9 +10,10 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { MessageCircle } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
+import { useProfile } from "@/hooks/use-profile";
 
 interface Seller {
-  id: number;
+  id: string;
   name: string;
   avatar: string;
 }
@@ -21,7 +22,7 @@ interface ProductDetailDialogProps {
   isOpen: boolean;
   onClose: () => void;
   item: {
-    id: number;
+    id: string;
     title: string;
     price: string;
     condition: string;
@@ -29,15 +30,21 @@ interface ProductDetailDialogProps {
     category: string;
     image: string;
     seller: Seller;
+    description?: string;
   } | null;
 }
 
 const ProductDetailDialog = ({ isOpen, onClose, item }: ProductDetailDialogProps) => {
   const navigate = useNavigate();
+  const { isAuthenticated } = useProfile();
 
   if (!item) return null;
 
   const handleMessageSeller = () => {
+    if (!isAuthenticated) {
+      navigate('/login?redirect=/messages');
+      return;
+    }
     navigate(`/messages?seller=${item.seller.id}`);
     onClose();
   };
@@ -67,6 +74,13 @@ const ProductDetailDialog = ({ isOpen, onClose, item }: ProductDetailDialogProps
               </div>
             </div>
             
+            {item.description && (
+              <div>
+                <h4 className="font-semibold mb-2">Description</h4>
+                <p className="text-muted-foreground">{item.description}</p>
+              </div>
+            )}
+            
             <div>
               <h4 className="font-semibold mb-2">Location</h4>
               <p className="text-muted-foreground">{item.location}</p>
@@ -79,10 +93,10 @@ const ProductDetailDialog = ({ isOpen, onClose, item }: ProductDetailDialogProps
               >
                 <Avatar className="h-12 w-12">
                   <AvatarImage src={item.seller.avatar} />
-                  <AvatarFallback>{item.seller.name[0]}</AvatarFallback>
+                  <AvatarFallback>{item.seller.name ? item.seller.name.charAt(0) : 'U'}</AvatarFallback>
                 </Avatar>
                 <div>
-                  <p className="font-semibold">{item.seller.name}</p>
+                  <p className="font-semibold">{item.seller.name || 'User'}</p>
                   <p className="text-sm text-muted-foreground">View Profile</p>
                 </div>
               </Link>
