@@ -19,10 +19,14 @@ export function useFeedRealtime({ userId, setLikedPosts, setPostStats }: UseFeed
       }, (payload) => {
         let listingId: number;
         
-        if (payload.new && payload.new.listing_id) {
-          listingId = parseInt(payload.new.listing_id);
-        } else if (payload.old && payload.old.listing_id) {
-          listingId = parseInt(payload.old.listing_id);
+        // Type guard to check if payload.new or payload.old has listing_id
+        const newListingId = payload.new ? (payload.new as any).listing_id : undefined;
+        const oldListingId = payload.old ? (payload.old as any).listing_id : undefined;
+        
+        if (newListingId) {
+          listingId = parseInt(newListingId);
+        } else if (oldListingId) {
+          listingId = parseInt(oldListingId);
         } else {
           return; // Skip if no valid listing_id
         }
@@ -39,7 +43,7 @@ export function useFeedRealtime({ userId, setLikedPosts, setPostStats }: UseFeed
           }));
           
           // If it's the current user, update their liked status
-          if (payload.new.user_id === userId) {
+          if (payload.new && (payload.new as any).user_id === userId) {
             setLikedPosts(prev => ({
               ...prev,
               [listingId]: true
@@ -56,7 +60,7 @@ export function useFeedRealtime({ userId, setLikedPosts, setPostStats }: UseFeed
           }));
           
           // If it's the current user, update their liked status
-          if (payload.old.user_id === userId) {
+          if (payload.old && (payload.old as any).user_id === userId) {
             setLikedPosts(prev => ({
               ...prev,
               [listingId]: false
@@ -74,10 +78,14 @@ export function useFeedRealtime({ userId, setLikedPosts, setPostStats }: UseFeed
       }, (payload) => {
         let listingId: number;
         
-        if (payload.new && payload.new.listing_id) {
-          listingId = parseInt(payload.new.listing_id);
-        } else if (payload.old && payload.old.listing_id) {
-          listingId = parseInt(payload.old.listing_id);
+        // Type guard to check if payload.new or payload.old has listing_id
+        const newListingId = payload.new ? (payload.new as any).listing_id : undefined;
+        const oldListingId = payload.old ? (payload.old as any).listing_id : undefined;
+        
+        if (newListingId) {
+          listingId = parseInt(newListingId);
+        } else if (oldListingId) {
+          listingId = parseInt(oldListingId);
         } else {
           return; // Skip if no valid listing_id
         }
