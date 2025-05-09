@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { MessageSquare } from "lucide-react";
@@ -7,6 +7,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import ProductDetailDialog from "./ProductDetailDialog";
 import { useProfile } from "@/hooks/use-profile";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 
 interface FeaturedItemsProps {
   items: any[];
@@ -16,10 +17,46 @@ interface FeaturedItemsProps {
 const FeaturedItems = ({ items, selectedCategory }: FeaturedItemsProps) => {
   const [selectedItem, setSelectedItem] = useState<any | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const filteredItems = selectedCategory === "All" ? items : items.filter(item => item.category === selectedCategory);
+  const [profilesCache, setProfilesCache] = useState<Record<string, {full_name: string, avatar_url: string}>>({});
   const { isAuthenticated } = useProfile();
   const navigate = useNavigate();
+  const filteredItems = selectedCategory === "All" ? items : items.filter(item => item.category === selectedCategory);
 
+  // Fetch all seller profiles at once for better performance
+  useEffect(() => {
+    const fetchSellerProfiles = async () => {
+      try {
+        const sellerIds = [...new Set(items.map(item => item.seller.id))];
+        if (sellerIds.length === 0) return;
+        
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('id, full_name, avatar_url')
+          .in('id', sellerIds);
+          
+        if (error) {
+          console.error("Error fetching seller profiles:", error);
+          return;
+        }
+        
+        if (data) {
+          const profiles: Record<string, {full_name: string, avatar_url: string}> = {};
+          data.forEach(profile => {
+            profiles[profile.id] = {
+              full_name: profile.full_name || 'Unknown User',
+              avatar_url: profile.avatar_url || 'https://images.unsplash.com/photo-1568602471122-7832951cc4c5'
+            };
+          });
+          setProfilesCache(profiles);
+        }
+      } catch (error) {
+        console.error("Error fetching seller profiles:", error);
+      }
+    };
+    
+    fetchSellerProfiles();
+  }, [items]);
+  
   const handleItemClick = (item: any) => {
     setSelectedItem(item);
     setDialogOpen(true);
@@ -31,6 +68,16 @@ const FeaturedItems = ({ items, selectedCategory }: FeaturedItemsProps) => {
       return;
     }
     navigate(`/messages?seller=${sellerId}`);
+  };
+
+  // Get seller name from cache or use fallback
+  const getSellerName = (sellerId: string) => {
+    return profilesCache[sellerId]?.full_name || 'Unknown User';
+  };
+  
+  // Get seller avatar from cache or use fallback
+  const getSellerAvatar = (sellerId: string) => {
+    return profilesCache[sellerId]?.avatar_url || 'https://images.unsplash.com/photo-1568602471122-7832951cc4c5';
   };
 
   return (
@@ -86,15 +133,15 @@ const FeaturedItems = ({ items, selectedCategory }: FeaturedItemsProps) => {
               </div>
             </div>
             
-            {/* Seller information */}
+            {/* Seller information - now using cache */}
             <div className="mt-3 pt-3 border-t border-border flex items-center">
               <Link to={`/profile/${item.seller.id}`} className="flex items-center">
                 <Avatar className="h-7 w-7 mr-2">
-                  <AvatarImage src={item.seller.avatar} alt={item.seller.name} />
-                  <AvatarFallback>{item.seller.name ? item.seller.name.charAt(0) : 'U'}</AvatarFallback>
+                  <AvatarImage src={getSellerAvatar(item.seller.id)} alt={getSellerName(item.seller.id)} />
+                  <AvatarFallback>{getSellerName(item.seller.id).charAt(0)}</AvatarFallback>
                 </Avatar>
                 <span className="text-sm font-medium hover:underline">
-                  {item.seller.name || 'User'}
+                  {getSellerName(item.seller.id)}
                 </span>
               </Link>
             </div>
@@ -106,7 +153,14 @@ const FeaturedItems = ({ items, selectedCategory }: FeaturedItemsProps) => {
       <ProductDetailDialog
         isOpen={dialogOpen}
         onClose={() => setDialogOpen(false)}
-        item={selectedItem}
+        item={selectedItem && {
+          ...selectedItem,
+          seller: {
+            ...selectedItem.seller,
+            name: getSellerName(selectedItem.seller.id),
+            avatar: getSellerAvatar(selectedItem.seller.id)
+          }
+        }}
       />
     </>
   );

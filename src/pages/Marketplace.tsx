@@ -49,18 +49,18 @@ const Marketplace = () => {
             location,
             category,
             post_type,
-            user_id,
-            profiles:user_id (
-              id,
-              full_name,
-              avatar_url
-            )
+            user_id
           `)
           .eq('post_type', 'product')
           .order('created_at', { ascending: false });
 
         if (error) {
           console.error("Error fetching listings:", error);
+          toast({
+            title: 'Error fetching listings',
+            description: 'Could not load product listings. Please try again later.',
+            variant: 'destructive'
+          });
           setFeaturedItems([]);
           setRecentListings([]);
           setLoading(false);
@@ -74,10 +74,29 @@ const Marketplace = () => {
           return;
         }
 
+        // Fetch all user profiles at once for better performance
+        const userIds = [...new Set(data.map(item => item.user_id))];
+        const { data: userProfiles, error: profileError } = await supabase
+          .from('profiles')
+          .select('id, full_name, avatar_url')
+          .in('id', userIds);
+          
+        if (profileError) {
+          console.error("Error fetching user profiles:", profileError);
+        }
+        
+        // Create a map of user profiles for quick access
+        const profileMap = new Map();
+        if (userProfiles) {
+          userProfiles.forEach(profile => {
+            profileMap.set(profile.id, profile);
+          });
+        }
+
         // Transform to featured items
         const items = data.map(item => {
-          // Get the seller profile from the joined profiles data
-          const userProfile = item.profiles || { id: '0', full_name: 'Anonymous', avatar_url: null };
+          // Get the seller profile from the map
+          const userProfile = profileMap.get(item.user_id) || { id: item.user_id, full_name: 'Unknown User', avatar_url: null };
           
           return {
             id: item.id,
@@ -90,9 +109,9 @@ const Marketplace = () => {
               ? item.images[0] 
               : 'https://images.unsplash.com/photo-1523275335684-37898b6baf30',
             seller: {
-              id: userProfile.id as string,
-              name: userProfile.full_name as string || 'User',
-              avatar: userProfile.avatar_url as string || 'https://images.unsplash.com/photo-1568602471122-7832951cc4c5'
+              id: userProfile.id,
+              name: userProfile.full_name || 'Unknown User',
+              avatar: userProfile.avatar_url || 'https://images.unsplash.com/photo-1568602471122-7832951cc4c5'
             },
             description: item.description
           };
@@ -129,7 +148,8 @@ const Marketplace = () => {
             store,
             location,
             expires_at,
-            images
+            images,
+            user_id
           `)
           .order('created_at', { ascending: false })
           .limit(5);
@@ -140,6 +160,25 @@ const Marketplace = () => {
         }
 
         if (data && data.length > 0) {
+          // Fetch all user profiles at once for better performance
+          const userIds = [...new Set(data.map(item => item.user_id))];
+          const { data: userProfiles, error: profileError } = await supabase
+            .from('profiles')
+            .select('id, full_name, avatar_url')
+            .in('id', userIds);
+            
+          if (profileError) {
+            console.error("Error fetching user profiles:", profileError);
+          }
+          
+          // Create a map of user profiles for quick access
+          const profileMap = new Map();
+          if (userProfiles) {
+            userProfiles.forEach(profile => {
+              profileMap.set(profile.id, profile);
+            });
+          }
+          
           const transformedDiscounts: Discount[] = data.map(item => ({
             id: item.id,
             title: item.title,

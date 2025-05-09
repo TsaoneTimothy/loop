@@ -7,12 +7,14 @@ import FloatingThemeToggle from "@/components/feed/FloatingThemeToggle";
 import { FeedItem } from "@/types/feed";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useProfile } from "@/hooks/use-profile";
 
 const Feed = () => {
   const [items, setItems] = useState<FeedItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const { toast } = useToast();
+  const { userId } = useProfile();
 
   // Fetch feed items from supabase
   useEffect(() => {
@@ -40,63 +42,6 @@ const Feed = () => {
           console.error("Error fetching discount promotions:", discountError);
         }
 
-        // Fetch users for discount promotions
-        let discountItems: FeedItem[] = [];
-        if (discountData && discountData.length > 0) {
-          const userIds = discountData.map(item => item.user_id);
-          
-          const { data: usersData, error: usersError } = await supabase
-            .from('profiles')
-            .select('id, full_name, avatar_url')
-            .in('id', userIds);
-            
-          if (usersError) {
-            console.error("Error fetching users:", usersError);
-          }
-          
-          // Create a map of user data for quick lookup
-          const userMap = new Map();
-          if (usersData) {
-            usersData.forEach(user => {
-              userMap.set(user.id, user);
-            });
-          }
-          
-          // Map discount promotions to feed items
-          discountItems = discountData.map(item => {
-            const userData = userMap.get(item.user_id) || { 
-              id: item.user_id, 
-              full_name: 'Anonymous', 
-              avatar_url: null 
-            };
-            
-            return {
-              id: parseInt(item.id) || 0,
-              type: 'discount',
-              title: item.title || '',
-              description: item.description || '',
-              date: new Date(item.created_at || '').toLocaleDateString(),
-              image: item.images && item.images.length > 0 
-                ? item.images[0] 
-                : 'https://images.unsplash.com/photo-1607082350899-7e105aa886ae',
-              orientation: 'landscape',
-              likes: 0,
-              comments: 0,
-              saved: false,
-              user: {
-                id: parseInt(userData.id) || 0,
-                name: userData.full_name || 'Anonymous',
-                username: (userData.full_name || 'anonymous').toLowerCase().replace(/\s/g, ''),
-                avatar: userData.avatar_url || 'https://images.unsplash.com/photo-1568602471122-7832951cc4c5',
-                role: 'merchant',
-                verified: false
-              },
-              link: `/marketplace/discount/${item.id}`,
-              expiresAt: item.expires_at ? new Date(item.expires_at).toLocaleDateString() : undefined
-            };
-          });
-        }
-
         // Fetch news/announcements
         const { data: newsData, error: newsError } = await supabase
           .from('news_announcements')
@@ -116,36 +61,64 @@ const Feed = () => {
           console.error("Error fetching news/announcements:", newsError);
         }
 
-        // Fetch users for news/announcements
+        // Fetch all user profiles for more efficient lookup
+        const { data: profiles, error: profilesError } = await supabase
+          .from('profiles')
+          .select('id, full_name, avatar_url');
+          
+        if (profilesError) {
+          console.error("Error fetching profiles:", profilesError);
+        }
+        
+        // Create a map of user profiles for quick lookup
+        const profileMap = new Map();
+        if (profiles) {
+          profiles.forEach(profile => {
+            profileMap.set(profile.id, profile);
+          });
+        }
+        
+        // Helper function to get user data
+        const getUserData = (userId: string) => {
+          const profile = profileMap.get(userId);
+          return {
+            id: parseInt(userId) || 0,
+            name: profile?.full_name || 'Unknown User',
+            username: (profile?.full_name || 'unknown').toLowerCase().replace(/\s/g, ''),
+            avatar: profile?.avatar_url || 'https://images.unsplash.com/photo-1568602471122-7832951cc4c5',
+            role: 'user',
+            verified: false
+          };
+        };
+        
+        // Map discount promotions to feed items
+        let discountItems: FeedItem[] = [];
+        if (discountData && discountData.length > 0) {
+          discountItems = discountData.map(item => {
+            return {
+              id: parseInt(item.id) || 0,
+              type: 'discount',
+              title: item.title || '',
+              description: item.description || '',
+              date: new Date(item.created_at || '').toLocaleDateString(),
+              image: item.images && item.images.length > 0 
+                ? item.images[0] 
+                : 'https://images.unsplash.com/photo-1607082350899-7e105aa886ae',
+              orientation: 'landscape',
+              likes: 0,
+              comments: 0,
+              saved: false,
+              user: getUserData(item.user_id),
+              link: `/marketplace/discount/${item.id}`,
+              expiresAt: item.expires_at ? new Date(item.expires_at).toLocaleDateString() : undefined
+            };
+          });
+        }
+        
+        // Map news/announcements to feed items
         let newsItems: FeedItem[] = [];
         if (newsData && newsData.length > 0) {
-          const userIds = newsData.map(item => item.user_id);
-          
-          const { data: usersData, error: usersError } = await supabase
-            .from('profiles')
-            .select('id, full_name, avatar_url')
-            .in('id', userIds);
-            
-          if (usersError) {
-            console.error("Error fetching users:", usersError);
-          }
-          
-          // Create a map of user data for quick lookup
-          const userMap = new Map();
-          if (usersData) {
-            usersData.forEach(user => {
-              userMap.set(user.id, user);
-            });
-          }
-          
-          // Map news/announcements to feed items
           newsItems = newsData.map(item => {
-            const userData = userMap.get(item.user_id) || { 
-              id: item.user_id, 
-              full_name: 'Anonymous', 
-              avatar_url: null 
-            };
-            
             return {
               id: parseInt(item.id) || 0,
               type: item.news_type || 'news',
@@ -159,14 +132,7 @@ const Feed = () => {
               likes: 0,
               comments: 0,
               saved: false,
-              user: {
-                id: parseInt(userData.id) || 0,
-                name: userData.full_name || 'Anonymous',
-                username: (userData.full_name || 'anonymous').toLowerCase().replace(/\s/g, ''),
-                avatar: userData.avatar_url || 'https://images.unsplash.com/photo-1568602471122-7832951cc4c5',
-                role: 'student',
-                verified: false
-              }
+              user: getUserData(item.user_id)
             };
           });
         }
@@ -178,6 +144,31 @@ const Feed = () => {
         feedItems.sort((a, b) => {
           return new Date(b.date).getTime() - new Date(a.date).getTime();
         });
+
+        // If user is logged in, fetch their bookmarks
+        if (userId) {
+          try {
+            const { data: bookmarks } = await supabase
+              .from('bookmarks')
+              .select('listing_id')
+              .eq('user_id', userId);
+              
+            if (bookmarks && bookmarks.length > 0) {
+              // Create a set of bookmarked listing IDs
+              const bookmarkedIds = new Set(
+                bookmarks.map(bookmark => parseInt(bookmark.listing_id))
+              );
+              
+              // Mark bookmarked items
+              feedItems = feedItems.map(item => ({
+                ...item,
+                saved: bookmarkedIds.has(item.id)
+              }));
+            }
+          } catch (error) {
+            console.error('Error fetching bookmarks:', error);
+          }
+        }
 
         setItems(feedItems);
       } catch (error) {
@@ -193,7 +184,7 @@ const Feed = () => {
     }
 
     fetchFeedItems();
-  }, [toast]);
+  }, [toast, userId]);
 
   // Toggle saved status
   const toggleSaved = (id: number) => {

@@ -39,14 +39,15 @@ const InitializeConversation = ({
         }
           
         if (sellerProfile) {
+          // Set selected user with seller profile data
           setSelectedUser({
             id: sellerProfile.id,
-            name: sellerProfile.full_name || 'User',
+            name: sellerProfile.full_name || 'Unknown User',
             avatar: sellerProfile.avatar_url || 'https://images.unsplash.com/photo-1599566150163-29194dcaad36'
           });
           
           // Load existing messages
-          loadMessages(sellerId);
+          await loadMessages(sellerId);
         }
       } catch (error) {
         console.error("Error initializing conversation:", error);

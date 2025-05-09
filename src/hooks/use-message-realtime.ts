@@ -1,3 +1,4 @@
+
 import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Conversation, MessageUser } from "@/types/messages";
@@ -22,7 +23,7 @@ export const useMessageRealtime = (
         schema: 'public', 
         table: 'messages',
         filter: `receiver_id=eq.${userId}` 
-      }, (payload) => {
+      }, async (payload) => {
         // Handle new message received
         if (payload.eventType === 'INSERT') {
           const newMessage = payload.new;
@@ -32,7 +33,7 @@ export const useMessageRealtime = (
             setMessages(prev => [...prev, newMessage]);
             
             // Mark as read since we're actively viewing this conversation
-            supabase
+            await supabase
               .from('messages')
               .update({ read: true })
               .eq('id', newMessage.id);
@@ -71,8 +72,8 @@ export const useMessageRealtime = (
                       id: data.id,
                       user: {
                         id: data.id,
-                        name: data.full_name || 'User',
-                        avatar: data.avatar_url || 'https://images.unsplash.com/photo-1599566150163-29194dcaad36',
+                        name: data.full_name || 'Unknown User',
+                        avatar: data.avatar_url || 'https://images.unsplash.com/photo-1568602471122-7832951cc4c5',
                         online: true
                       },
                       lastMessage: newMessage.content,

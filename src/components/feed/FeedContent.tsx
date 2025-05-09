@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import PostItem from "./PostItem";
 import { FeedItem } from "@/types/feed";
 import { supabase } from "@/integrations/supabase/client";
@@ -14,7 +14,61 @@ interface FeedContentProps {
 const FeedContent = ({ items, toggleSaved }: FeedContentProps) => {
   const { toast } = useToast();
   const { isAuthenticated, userId } = useProfile();
-  const [interactedItems, setInteractedItems] = useState<Record<string, boolean>>({});
+  const [likedPosts, setLikedPosts] = useState<Record<number, boolean>>({});
+  const [postStats, setPostStats] = useState<Record<number, {likes: number, comments: number}>>({});
+  
+  // Fetch initial like status for each post
+  useEffect(() => {
+    const fetchLikeStatus = async () => {
+      if (!isAuthenticated || !userId) return;
+      
+      try {
+        const postIds = items.map(item => String(item.id));
+        
+        // Get user's likes
+        const { data: likes } = await supabase
+          .from('likes')
+          .select('listing_id')
+          .eq('user_id', userId)
+          .in('listing_id', postIds);
+          
+        if (likes) {
+          const likedMap: Record<number, boolean> = {};
+          likes.forEach(like => {
+            likedMap[parseInt(like.listing_id)] = true;
+          });
+          setLikedPosts(likedMap);
+        }
+        
+        // Get like counts and comment counts for each post
+        const statsMap: Record<number, {likes: number, comments: number}> = {};
+        
+        // Fetch like counts
+        for (const postId of postIds) {
+          const { count: likeCount } = await supabase
+            .from('likes')
+            .select('*', { count: 'exact', head: true })
+            .eq('listing_id', postId);
+            
+          const { count: commentCount } = await supabase
+            .from('comments')
+            .select('*', { count: 'exact', head: true })
+            .eq('listing_id', postId);
+            
+          statsMap[parseInt(postId)] = {
+            likes: likeCount || 0,
+            comments: commentCount || 0
+          };
+        }
+        
+        setPostStats(statsMap);
+      } catch (error) {
+        console.error("Error fetching like status:", error);
+      }
+    };
+    
+    fetchLikeStatus();
+  }, [items, userId, isAuthenticated]);
 
   const handleToggleLike = async (id: number) => {
     if (!isAuthenticated) {
@@ -43,7 +97,20 @@ const FeedContent = ({ items, toggleSaved }: FeedContentProps) => {
           .eq('user_id', userId)
           .eq('listing_id', String(id));
 
-        // We don't need to update state as the realtime subscription will handle it
+        // Update local state
+        setLikedPosts(prev => ({
+          ...prev,
+          [id]: false
+        }));
+        
+        setPostStats(prev => ({
+          ...prev,
+          [id]: {
+            ...prev[id],
+            likes: Math.max(0, (prev[id]?.likes || 1) - 1)
+          }
+        }));
+        
         toast({
           title: "Like removed",
           description: "You've removed your like from this post",
@@ -56,7 +123,20 @@ const FeedContent = ({ items, toggleSaved }: FeedContentProps) => {
             { user_id: userId, listing_id: String(id) }
           ]);
 
-        // We don't need to update state as the realtime subscription will handle it
+        // Update local state
+        setLikedPosts(prev => ({
+          ...prev,
+          [id]: true
+        }));
+        
+        setPostStats(prev => ({
+          ...prev,
+          [id]: {
+            ...prev[id],
+            likes: (prev[id]?.likes || 0) + 1
+          }
+        }));
+        
         toast({
           title: "Post liked",
           description: "You've liked this post",
@@ -69,6 +149,54 @@ const FeedContent = ({ items, toggleSaved }: FeedContentProps) => {
         description: "Failed to update like status",
         variant: "destructive",
       });
+    }
+  };
+
+  const handleAddComment = async (id: number, comment: string) => {
+    if (!isAuthenticated) {
+      toast({
+        title: "Authentication required",
+        description: "Please sign in to comment",
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    try {
+      await supabase
+        .from('comments')
+        .insert([
+          { 
+            user_id: userId, 
+            listing_id: String(id),
+            content: comment
+          }
+        ]);
+      
+      // Update local state
+      setPostStats(prev => ({
+        ...prev,
+        [id]: {
+          ...prev[id],
+          comments: (prev[id]?.comments || 0) + 1
+        }
+      }));
+      
+      toast({
+        title: "Comment added",
+        description: "Your comment was posted successfully",
+      });
+      
+      return true;
+    } catch (error) {
+      console.error("Error adding comment:", error);
+      toast({
+        title: "Error",
+        description: "Failed to post your comment",
+        variant: "destructive",
+      });
+      
+      return false;
     }
   };
 
@@ -132,44 +260,93 @@ const FeedContent = ({ items, toggleSaved }: FeedContentProps) => {
     }
   };
 
-  const handleAddComment = async (id: number, comment: string) => {
-    if (!isAuthenticated) {
-      toast({
-        title: "Authentication required",
-        description: "Please sign in to comment",
-        variant: "destructive",
-      });
-      return false;
-    }
-
-    try {
-      await supabase
-        .from('comments')
-        .insert([
-          { 
-            user_id: userId, 
-            listing_id: String(id),
-            content: comment
+  // Listen for realtime updates
+  useEffect(() => {
+    const likesChannel = supabase.channel('public:likes')
+      .on('postgres_changes', { 
+        event: '*', 
+        schema: 'public', 
+        table: 'likes' 
+      }, (payload) => {
+        const listingId = parseInt(payload.new?.listing_id || payload.old?.listing_id);
+        if (!listingId) return;
+        
+        // Update like counts
+        if (payload.eventType === 'INSERT') {
+          // Someone liked a post
+          setPostStats(prev => ({
+            ...prev,
+            [listingId]: {
+              ...prev[listingId],
+              likes: (prev[listingId]?.likes || 0) + 1
+            }
+          }));
+          
+          // If it's the current user, update their liked status
+          if (payload.new.user_id === userId) {
+            setLikedPosts(prev => ({
+              ...prev,
+              [listingId]: true
+            }));
           }
-        ]);
+        } else if (payload.eventType === 'DELETE') {
+          // Someone removed a like
+          setPostStats(prev => ({
+            ...prev,
+            [listingId]: {
+              ...prev[listingId],
+              likes: Math.max(0, (prev[listingId]?.likes || 1) - 1)
+            }
+          }));
+          
+          // If it's the current user, update their liked status
+          if (payload.old.user_id === userId) {
+            setLikedPosts(prev => ({
+              ...prev,
+              [listingId]: false
+            }));
+          }
+        }
+      })
+      .subscribe();
       
-      toast({
-        title: "Comment added",
-        description: "Your comment was posted successfully",
-      });
+    const commentsChannel = supabase.channel('public:comments')
+      .on('postgres_changes', { 
+        event: '*', 
+        schema: 'public', 
+        table: 'comments' 
+      }, (payload) => {
+        const listingId = parseInt(payload.new?.listing_id || payload.old?.listing_id);
+        if (!listingId) return;
+        
+        // Update comment counts
+        if (payload.eventType === 'INSERT') {
+          // Someone commented on a post
+          setPostStats(prev => ({
+            ...prev,
+            [listingId]: {
+              ...prev[listingId],
+              comments: (prev[listingId]?.comments || 0) + 1
+            }
+          }));
+        } else if (payload.eventType === 'DELETE') {
+          // Someone deleted a comment
+          setPostStats(prev => ({
+            ...prev,
+            [listingId]: {
+              ...prev[listingId],
+              comments: Math.max(0, (prev[listingId]?.comments || 1) - 1)
+            }
+          }));
+        }
+      })
+      .subscribe();
       
-      return true;
-    } catch (error) {
-      console.error("Error adding comment:", error);
-      toast({
-        title: "Error",
-        description: "Failed to post your comment",
-        variant: "destructive",
-      });
-      
-      return false;
-    }
-  };
+    return () => {
+      supabase.removeChannel(likesChannel);
+      supabase.removeChannel(commentsChannel);
+    };
+  }, [userId]);
 
   return (
     <div className="max-w-2xl mx-auto">
@@ -184,8 +361,8 @@ const FeedContent = ({ items, toggleSaved }: FeedContentProps) => {
             date={item.date}
             image={item.image}
             orientation={item.orientation}
-            likes={item.likes}
-            comments={item.comments}
+            likes={postStats[item.id]?.likes ?? item.likes}
+            comments={postStats[item.id]?.comments ?? item.comments}
             saved={item.saved}
             user={item.user}
             onToggleSaved={() => handleBookmark(item.id)}
@@ -193,7 +370,7 @@ const FeedContent = ({ items, toggleSaved }: FeedContentProps) => {
             onAddComment={(comment) => handleAddComment(item.id, comment)}
             link={item.link}
             expiresAt={item.expiresAt}
-            liked={item.liked}
+            liked={likedPosts[item.id] || false}
           />
         ))}
       </div>

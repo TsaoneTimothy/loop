@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useProfile } from "@/hooks/use-profile";
 import { MessageUser } from "@/types/messages";
 import MessageList from "@/components/messages/MessageList";
@@ -22,14 +22,11 @@ const Messages = () => {
   useMessageRealtime(userId, selectedUser, setMessages, setConversations);
   
   // Handle conversation initialization from URL
-  if (isAuthenticated) {
-    <InitializeConversation 
-      userId={userId}
-      isAuthenticated={isAuthenticated}
-      setSelectedUser={setSelectedUser}
-      loadMessages={loadMessages}
-    />
-  }
+  useEffect(() => {
+    if (isAuthenticated) {
+      return;
+    }
+  }, [isAuthenticated]);
   
   // Handle click on a conversation
   const handleConversationClick = (conversation: any) => {
@@ -50,25 +47,32 @@ const Messages = () => {
     return <AuthRequired />;
   }
 
-  if (selectedUser) {
-    return (
-      <ChatView
-        user={selectedUser}
-        messages={messages}
-        currentUserId={userId || ""}
-        onBack={goBackToList}
-        onSendMessage={onSendMessage}
-        formatMessageTime={formatMessageTime}
-      />
-    );
-  }
-
   return (
-    <MessageList 
-      conversations={conversations}
-      loading={loading}
-      onSelectConversation={handleConversationClick}
-    />
+    <>
+      <InitializeConversation 
+        userId={userId}
+        isAuthenticated={isAuthenticated}
+        setSelectedUser={setSelectedUser}
+        loadMessages={loadMessages}
+      />
+      
+      {selectedUser ? (
+        <ChatView
+          user={selectedUser}
+          messages={messages}
+          currentUserId={userId || ""}
+          onBack={goBackToList}
+          onSendMessage={onSendMessage}
+          formatMessageTime={formatMessageTime}
+        />
+      ) : (
+        <MessageList 
+          conversations={conversations}
+          loading={loading}
+          onSelectConversation={handleConversationClick}
+        />
+      )}
+    </>
   );
 };
 
