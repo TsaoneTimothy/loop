@@ -1,17 +1,16 @@
 
-import { Settings, Bell, Share2, Map, Bookmark, Heart, Shield, CreditCard, HelpCircle, LogOut } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Avatar } from "@/components/ui/avatar";
-import { Separator } from "@/components/ui/separator";
-import { toast } from "@/hooks/use-toast";
-import EditProfileDialog from "@/components/EditProfileDialog";
+import { useState, useEffect } from "react";
+import { useParams } from "react-router-dom";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useProfile } from "@/hooks/use-profile";
 import { supabase } from "@/integrations/supabase/client";
-import { useEffect, useState } from "react";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
+// Refactored components
+import ProfileHeader from "@/components/profile/ProfileHeader";
+import ProfileAuthStatus from "@/components/profile/ProfileAuthStatus";
+import ProfileStats from "@/components/profile/ProfileStats";
+import ProfileSettings from "@/components/profile/ProfileSettings";
 import MyListings from "@/components/profile/MyListings";
-import { useParams } from "react-router-dom";
 
 interface ProfileProps {
   onLogout: () => void;
@@ -31,6 +30,8 @@ const Profile = ({ onLogout }: ProfileProps) => {
   
   const viewedUserId = params.userId || userId;
   const isOwnProfile = !params.userId || params.userId === userId;
+  const isNewUser = isAuthenticated && (!profile || !profile.full_name || profile.full_name === "User");
+  const displayedProfile = isOwnProfile ? profile : viewedProfile;
 
   // Get session and user ID on component mount
   useEffect(() => {
@@ -72,6 +73,7 @@ const Profile = ({ onLogout }: ProfileProps) => {
     fetchViewedProfile();
   }, [viewedUserId]);
 
+  // Fetch user stats
   useEffect(() => {
     async function fetchStats() {
       if (!viewedUserId) return;
@@ -96,157 +98,32 @@ const Profile = ({ onLogout }: ProfileProps) => {
     fetchStats();
   }, [viewedUserId]);
 
-  const menuItems = [
-    {
-      icon: <Shield className="h-6 w-6 text-primary" />,
-      title: "Privacy & Security",
-      description: "Control your account security",
-      action: () => toast({ title: "Privacy & Security", description: "This feature is not yet implemented" })
-    },
-    {
-      icon: <CreditCard className="h-6 w-6 text-primary" />,
-      title: "Payment Methods",
-      description: "Manage your payment options",
-      action: () => toast({ title: "Payment Methods", description: "This feature is not yet implemented" })
-    },
-    {
-      icon: <HelpCircle className="h-6 w-6 text-primary" />,
-      title: "Help & Support",
-      description: "Get help with your account",
-      action: () => toast({ title: "Help & Support", description: "This feature is not yet implemented" })
-    }
-  ];
-
   const handleRefreshAuth = async () => {
     const { data } = await supabase.auth.getSession();
     setSession(data.session);
     if (data.session?.user?.id) {
-      toast({ title: "Authentication successful", description: "Your profile has been loaded" });
-    } else {
-      toast({ 
-        title: "Not authenticated", 
-        description: "Please log in to update your profile",
-        variant: "destructive"
-      });
+      console.log("Authentication successful");
     }
   };
-
-  // Check if this is a new user who needs to set up their profile
-  const isNewUser = isAuthenticated && (!profile || !profile.full_name || profile.full_name === "User");
-  
-  const displayedProfile = isOwnProfile ? profile : viewedProfile;
 
   return (
     <div className="pb-20">
       {/* Authentication Status - Only show on own profile */}
       {isOwnProfile && (
-        <div className="px-6 py-2">
-          {isAuthenticated ? (
-            <Alert className="bg-green-50 border-green-200 mb-2">
-              <AlertTitle className="text-green-800 flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-green-500"></div>
-                Authenticated
-              </AlertTitle>
-              <AlertDescription className="text-green-700">
-                You're logged in as {session?.user?.email}
-              </AlertDescription>
-            </Alert>
-          ) : (
-            <Alert className="bg-red-50 border-red-200 mb-2">
-              <AlertTitle className="text-red-800 flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-red-500"></div>
-                Not Authenticated
-              </AlertTitle>
-              <AlertDescription className="text-red-700">
-                You need to log in to update your profile
-                <Button 
-                  variant="link" 
-                  className="text-red-700 p-0 h-auto font-semibold ml-2"
-                  onClick={handleRefreshAuth}
-                >
-                  Refresh Auth
-                </Button>
-              </AlertDescription>
-            </Alert>
-          )}
-        </div>
+        <ProfileAuthStatus 
+          isAuthenticated={isAuthenticated} 
+          session={session} 
+          isNewUser={isNewUser}
+          handleRefreshAuth={handleRefreshAuth}
+        />
       )}
 
-      {/* New User Welcome Card */}
-      {isNewUser && isOwnProfile && (
-        <div className="px-6 mb-4">
-          <Alert className="bg-blue-50 border-blue-200">
-            <AlertTitle className="text-blue-800 flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-              Welcome to Campus Marketplace!
-            </AlertTitle>
-            <AlertDescription className="text-blue-700 flex flex-col gap-2">
-              <p>Looks like you're new here. Set up your profile to get started!</p>
-              <EditProfileDialog 
-                trigger={<Button className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 mt-2">Complete Your Profile</Button>} 
-              />
-            </AlertDescription>
-          </Alert>
-        </div>  
-      )}
-
-      <div className="bg-secondary">
-        <header className="loop-header">
-          {isOwnProfile && (
-            <>
-              <Button variant="ghost" size="icon" className="rounded-full">
-                <Settings className="h-6 w-6" />
-              </Button>
-              <Button variant="ghost" size="icon" className="rounded-full relative">
-                <Bell className="h-6 w-6" />
-              </Button>
-            </>
-          )}
-        </header>
-        
-        <div className="flex flex-col items-center pt-4 pb-10">
-          <Avatar className="h-24 w-24 mb-4">
-            <img src={displayedProfile?.avatar_url || "https://images.unsplash.com/photo-1599566150163-29194dcaad36"} alt={displayedProfile?.full_name || "Profile"} />
-          </Avatar>
-          
-          <h1 className="text-2xl font-bold">{displayedProfile?.full_name || "Complete Your Profile"}</h1>
-          {isOwnProfile && <p className="text-muted-foreground mb-3">{session?.user?.email}</p>}
-          
-          {isOwnProfile && <EditProfileDialog />}
-          
-          <div className="flex justify-around w-full mt-4">
-            <Button variant="ghost" size="icon" className="flex flex-col items-center">
-              <Settings className="h-6 w-6 text-primary" />
-              <span className="text-xs mt-1">Settings</span>
-            </Button>
-            
-            <Button variant="ghost" size="icon" className="flex flex-col items-center relative">
-              <Bell className="h-6 w-6 text-primary" />
-              <span className="text-xs mt-1">Notifications</span>
-            </Button>
-            
-            <Button variant="ghost" size="icon" className="flex flex-col items-center">
-              <Share2 className="h-6 w-6 text-primary" />
-              <span className="text-xs mt-1">Shares</span>
-            </Button>
-            
-            <Button variant="ghost" size="icon" className="flex flex-col items-center">
-              <Map className="h-6 w-6 text-primary" />
-              <span className="text-xs mt-1">Maps</span>
-            </Button>
-            
-            <Button variant="ghost" size="icon" className="flex flex-col items-center">
-              <Bookmark className="h-6 w-6 text-primary" />
-              <span className="text-xs mt-1">Bookmarks</span>
-            </Button>
-            
-            <Button variant="ghost" size="icon" className="flex flex-col items-center">
-              <Heart className="h-6 w-6 text-primary" />
-              <span className="text-xs mt-1">Likes</span>
-            </Button>
-          </div>
-        </div>
-      </div>
+      <ProfileHeader 
+        profile={displayedProfile} 
+        session={session}
+        isOwnProfile={isOwnProfile}
+        isNewUser={isNewUser}
+      />
       
       <Tabs defaultValue="listings" className="px-6">
         <TabsList className="w-full mb-4 mt-4">
@@ -260,59 +137,12 @@ const Profile = ({ onLogout }: ProfileProps) => {
         </TabsContent>
         
         <TabsContent value="stats">
-          <div className="flex justify-between mb-6">
-            <div className="text-center">
-              <p className="text-2xl font-bold">{stats.itemsSold}</p>
-              <p className="text-sm text-muted-foreground">Items Sold</p>
-            </div>
-            
-            <Separator orientation="vertical" />
-            
-            <div className="text-center">
-              <p className="text-2xl font-bold">{stats.activeListings}</p>
-              <p className="text-sm text-muted-foreground">Active Listings</p>
-            </div>
-            
-            <Separator orientation="vertical" />
-            
-            <div className="text-center">
-              <p className="text-2xl font-bold">{stats.totalEarnings}</p>
-              <p className="text-sm text-muted-foreground">Total Earnings</p>
-            </div>
-          </div>
+          <ProfileStats stats={stats} />
         </TabsContent>
         
         {isOwnProfile && (
           <TabsContent value="settings">
-            <div className="space-y-4 mt-4">
-              {menuItems.map((item, index) => (
-                <button
-                  key={index}
-                  className="flex items-center gap-4 w-full p-4 bg-card rounded-lg hover:bg-secondary transition-colors"
-                  onClick={item.action}
-                >
-                  <div className="h-12 w-12 flex items-center justify-center bg-accent rounded-lg">
-                    {item.icon}
-                  </div>
-                  <div className="text-left">
-                    <h3 className="font-semibold">{item.title}</h3>
-                    <p className="text-sm text-muted-foreground">{item.description}</p>
-                  </div>
-                </button>
-              ))}
-              
-              <button
-                className="flex items-center gap-4 w-full p-4 bg-card rounded-lg hover:bg-secondary transition-colors mt-8"
-                onClick={onLogout}
-              >
-                <div className="h-12 w-12 flex items-center justify-center bg-destructive/10 rounded-lg">
-                  <LogOut className="h-6 w-6 text-destructive" />
-                </div>
-                <div className="text-left">
-                  <h3 className="font-semibold text-destructive">Log Out</h3>
-                </div>
-              </button>
-            </div>
+            <ProfileSettings onLogout={onLogout} />
           </TabsContent>
         )}
       </Tabs>
