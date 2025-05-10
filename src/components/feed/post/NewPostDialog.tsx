@@ -10,7 +10,7 @@ import {
   DrawerContent, 
   DrawerTrigger 
 } from "@/components/ui/drawer";
-import { useMediaQuery } from "@/hooks/use-mobile";
+import { useIsMobile } from "@/hooks/use-mobile";
 import NewPostTypeSelector from "./NewPostTypeSelector";
 import NewPostForm from "./NewPostForm";
 import NewPostButton from "../NewPostButton";
@@ -26,7 +26,7 @@ const NewPostDialog: React.FC<NewPostDialogProps> = ({ onSuccess = () => {} }) =
   const [selectedPostType, setSelectedPostType] = useState<string | null>(null);
   const { isAuthenticated } = useProfile();
   const { toast } = useToast();
-  const isDesktop = useMediaQuery("(min-width: 768px)");
+  const isDesktop = !useIsMobile();
 
   const handleOpenChange = (open: boolean) => {
     setOpen(open);
