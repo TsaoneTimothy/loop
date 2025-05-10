@@ -5,13 +5,14 @@ import FloatingThemeToggle from "@/components/feed/FloatingThemeToggle";
 import FeedContent from "@/components/feed/FeedContent";
 import FeedFilter from "@/components/feed/FeedFilter";
 import FeedLoading from "@/components/feed/FeedLoading";
+import NewPostDialog from "@/components/feed/post/NewPostDialog";
 import { useFeedItems } from "@/hooks/use-feed-items";
 import { useProfile } from "@/hooks/use-profile";
 
 const Feed = () => {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const { userId } = useProfile();
-  const { items, loading, toggleSaved } = useFeedItems(userId);
+  const { items, loading, toggleSaved, refreshItems } = useFeedItems(userId);
 
   // Filter items based on selected category
   const filteredItems = selectedCategory
@@ -43,6 +44,9 @@ const Feed = () => {
           )
         )}
       </section>
+
+      {/* New Post Button & Dialog */}
+      <NewPostDialog onSuccess={refreshItems} />
     </div>
   );
 };
