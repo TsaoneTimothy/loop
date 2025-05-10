@@ -1,6 +1,7 @@
 
 import { NavLink } from "react-router-dom";
 import { Home, MessageCircle, User, Store, Plus } from "lucide-react";
+import UnreadMessageBadge from "./messages/UnreadMessageBadge";
 
 const Navigation = () => {
   return (
@@ -20,8 +21,9 @@ const Navigation = () => {
           <Plus className="h-6 w-6 text-white" />
         </NavLink>
         
-        <NavLink to="/messages" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+        <NavLink to="/messages" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''} relative`}>
           <MessageCircle className="h-6 w-6" />
+          <UnreadMessageBadge />
           <span>Messages</span>
         </NavLink>
         

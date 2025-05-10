@@ -1,7 +1,10 @@
+
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, ShoppingBag, Filter } from "lucide-react";
+import { Search, ShoppingBag, Filter, MessageCircle } from "lucide-react";
+import { NavLink } from "react-router-dom";
 import Logo from "@/components/shared/Logo";
+import UnreadMessageBadge from "@/components/messages/UnreadMessageBadge";
 
 interface MarketplaceHeaderProps {
   searchQuery: string;
@@ -31,6 +34,12 @@ const MarketplaceHeader = ({ searchQuery, setSearchQuery }: MarketplaceHeaderPro
         <Button variant="ghost" size="icon" className="rounded-full">
           <ShoppingBag className="h-6 w-6" />
         </Button>
+        <NavLink to="/messages" className="relative">
+          <Button variant="ghost" size="icon" className="rounded-full">
+            <MessageCircle className="h-6 w-6" />
+            <UnreadMessageBadge />
+          </Button>
+        </NavLink>
       </div>
     </header>
   );
